@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
-import ConnectionTest from './components/ConnectionTest';
+import ConnectionTest from './components/test/ConnectionTest';
+import ReduxTest from './components/test/ReduxTest';
 
 function App() {
   return (
@@ -8,6 +9,8 @@ function App() {
       <main>
         <ConnectionTest />
       </main>
+      <ReduxTest/ >
+      {}
     </div>
   );
 }
