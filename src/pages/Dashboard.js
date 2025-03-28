@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { getProfile, logout } from '../redux/slices/authSlice';
@@ -8,8 +8,8 @@ import Footer from '../components/layout/Footer';
 const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  
   const { user, isLoading } = useSelector((state) => state.auth);
+  const [profileFetched, setProfileFetched] = useState(false);
   
   useEffect(() => {
     if (!user) {
@@ -17,15 +17,26 @@ const Dashboard = () => {
       return;
     }
     
-    dispatch(getProfile());
-  }, [user, navigate, dispatch]);
+    // Only fetch profile once
+    if (!profileFetched) {
+      dispatch(getProfile())
+        .unwrap()
+        .then(() => {
+          setProfileFetched(true);
+        })
+        .catch(error => {
+          console.error("Error fetching profile:", error);
+        });
+    }
+  }, [user, navigate, dispatch, profileFetched]);
   
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login');
   };
   
-  if (isLoading) {
+  // Show loading state only during initial profile fetch
+  if (isLoading && !profileFetched) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
   
@@ -48,7 +59,7 @@ const Dashboard = () => {
           {user && (
             <div>
               <div className="mb-4">
-                <h2 className="text-xl font-semibold mb-2">Welcome, {user.name}!</h2>
+                <h2 className="text-xl font-semibold mb-2">Welcome, {user.name || 'User'}!</h2>
                 <p className="text-gray-600">
                   Account Type: <span className="font-medium">{user.role === 'DONOR' ? 'Donor' : 'Charity Organization'}</span>
                 </p>
@@ -81,7 +92,7 @@ const Dashboard = () => {
                   </div>
                 </div>
               ) : (
-                  <div className="mt-6">
+                <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-4">Charity Dashboard</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="bg-blue-50 p-4 rounded shadow">

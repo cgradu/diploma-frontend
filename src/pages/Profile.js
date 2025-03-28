@@ -16,20 +16,17 @@ const Profile = () => {
     newPassword: '',
     confirmPassword: '',
   });
-  
+
+  // Track whether we've already tried to fetch the profile
+  const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
+
   useEffect(() => {
-    dispatch(getProfile());
-  }, [dispatch]);
-  
-  useEffect(() => {
-    if (user) {
-      setFormData(prevState => ({
-        ...prevState,
-        name: user.name || '',
-        email: user.email || '',
-      }));
+    // Only fetch profile once and only if the user is logged in
+    if (user && !profileFetchAttempted) {
+      dispatch(getProfile());
+      setProfileFetchAttempted(true);
     }
-  }, [user]);
+  }, [dispatch, user, profileFetchAttempted]);
   
   const handleChange = (e) => {
     setFormData({

@@ -59,6 +59,17 @@ export const logout = createAsyncThunk('auth/logout', async () => {
   authService.logout();
 });
 
+// Add a new action to handle unauthorized errors
+export const handleAuthError = createAsyncThunk(
+  'auth/handleAuthError',
+  async (_, thunkAPI) => {
+    // Clear user data
+    authService.logout();
+    return null;
+  }
+);
+
+
 export const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -119,6 +130,12 @@ export const authSlice = createSlice({
       // Logout case
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
+      })
+      .addCase(handleAuthError.fulfilled, (state) => {
+        state.user = null;
+        state.isLoading = false;
+        state.isError = true;
+        state.message = 'Your session has expired. Please log in again.';
       });
   },
 });

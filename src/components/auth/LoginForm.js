@@ -23,6 +23,7 @@ const LoginForm = () => {
   useEffect(() => {
     if (isError) {
       // Display error message
+      console.error(message);
     }
     
     // Redirect when logged in
