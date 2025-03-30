@@ -17,7 +17,6 @@ export const register = createAsyncThunk(
   'auth/register',
   async (userData, thunkAPI) => {
     try {
-      // Frontend - In the register thunk
       console.log('Sending registration data:', userData);
       return await authService.register(userData);
     } catch (error) {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getProfile, logout } from '../redux/slices/authSlice';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
@@ -37,6 +37,7 @@ const Dashboard = () => {
   
   // Show loading state only during initial profile fetch
   if (isLoading && !profileFetched) {
+    console.log("Loading profile..." + isLoading + " " + profileFetched);
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
   
@@ -113,7 +114,9 @@ const Dashboard = () => {
                     <h3 className="text-lg font-semibold mb-4">Organization Profile</h3>
                     <p className="text-gray-600">Your profile is incomplete. Please add more details to increase visibility.</p>
                     <button className="mt-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                      <Link to="/profile">
                       Complete Profile
+                      </Link>
                     </button>
                   </div>
                 </div>

@@ -33,7 +33,7 @@ axiosInstance.interceptors.response.use(
     if (
       error.response && 
       error.response.status === 401 && 
-      !error.config.url.includes('/api/auth/login')
+      !error.config.url.includes('/auth/login')
     ) {
       // Instead of redirecting, dispatch a custom event that your app can listen for
       const event = new CustomEvent('authError', { detail: error.response });

@@ -8,7 +8,6 @@ const Profile = () => {
   const { user, isLoading } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   
-  // State for form data
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,7 +16,6 @@ const Profile = () => {
     confirmPassword: '',
   });
 
-  // Track whether we've already tried to fetch the profile
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
 
   useEffect(() => {
