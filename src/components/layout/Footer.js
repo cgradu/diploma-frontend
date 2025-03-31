@@ -1,3 +1,4 @@
+// src/components/layout/Footer.js
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -23,9 +24,9 @@ const Footer = () => {
           <div>
             <h3 className="text-md font-bold mb-4">Resources</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-white">How It Works</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white">Blockchain Verification</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-white">FAQ</a></li>
+              <li><Link to="/how-it-works" className="text-gray-400 hover:text-white">How It Works</Link></li>
+              <li><Link to="/blockchain-verification" className="text-gray-400 hover:text-white">Blockchain Verification</Link></li>
+              <li><Link to="/faq" className="text-gray-400 hover:text-white">FAQ</Link></li>
             </ul>
           </div>
           <div>

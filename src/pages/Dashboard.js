@@ -62,14 +62,14 @@ const Dashboard = () => {
               <div className="mb-4">
                 <h2 className="text-xl font-semibold mb-2">Welcome, {user.name || 'User'}!</h2>
                 <p className="text-gray-600">
-                  Account Type: <span className="font-medium">{user.role === 'DONOR' ? 'Donor' : 'Charity Organization'}</span>
+                  Account Type: <span className="font-medium">{user.role === 'donor' ? 'Donor' : 'Charity Organization'}</span>
                 </p>
                 <p className="text-gray-600">
                   Email: <span className="font-medium">{user.email}</span>
                 </p>
               </div>
               
-              {user.role === 'DONOR' ? (
+              {user.role === 'donor' ? (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-4">Donor Dashboard</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

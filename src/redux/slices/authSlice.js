@@ -1,3 +1,4 @@
+// src/redux/slices/authSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import authService from '../services/authService';
 
@@ -31,7 +32,7 @@ export const login = createAsyncThunk(
   'auth/login',
   async (userData, thunkAPI) => {
     try {
-      console.log('Sending registration data:', userData);
+      console.log('Sending login data:', userData);
       return await authService.login(userData);
     } catch (error) {
       const message = error.response?.data?.message || error.message || error.toString();
@@ -53,6 +54,45 @@ export const getProfile = createAsyncThunk(
   }
 );
 
+// Update user profile
+export const updateProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (profileData, thunkAPI) => {
+    try {
+      return await authService.updateProfile(profileData);
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Update user specific details (charity or donor)
+export const updateProfileDetails = createAsyncThunk(
+  'auth/updateProfileDetails',
+  async (detailsData, thunkAPI) => {
+    try {
+      return await authService.updateProfileDetails(detailsData);
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Change password
+export const changePassword = createAsyncThunk(
+  'auth/changePassword',
+  async (passwordData, thunkAPI) => {
+    try {
+      return await authService.changePassword(passwordData);
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 // Logout user
 export const logout = createAsyncThunk('auth/logout', async () => {
   authService.logout();
@@ -67,7 +107,6 @@ export const handleAuthError = createAsyncThunk(
     return null;
   }
 );
-
 
 export const authSlice = createSlice({
   name: 'auth',
@@ -122,6 +161,47 @@ export const authSlice = createSlice({
         state.user = { ...state.user, ...action.payload };
       })
       .addCase(getProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      // Update profile cases
+      .addCase(updateProfile.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.user = { ...state.user, ...action.payload };
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      // Update profile details cases
+      .addCase(updateProfileDetails.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(updateProfileDetails.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.user = { ...state.user, ...action.payload };
+      })
+      .addCase(updateProfileDetails.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      // Change password cases
+      .addCase(changePassword.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+      })
+      .addCase(changePassword.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;

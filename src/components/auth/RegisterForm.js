@@ -9,7 +9,7 @@ const RegisterForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'DONOR',
+    role: 'donor',
   });
   
   const [formErrors, setFormErrors] = useState({});
@@ -164,8 +164,8 @@ const RegisterForm = () => {
             value={role}
             onChange={handleChange}
           >
-            <option value="DONOR">Donor</option>
-            <option value="CHARITY">Charity</option>
+            <option value="donor">Donor</option>
+            <option value="charity">Charity</option>
           </select>
         </div>
         
