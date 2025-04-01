@@ -30,7 +30,7 @@ const updateProfile = async (profileData) => {
   const response = await axios.put('/auth/profile', profileData);
   
   // Update local storage with new user data while preserving the token
-  if (response.data) {
+  if (response.data) { 
     const currentUser = JSON.parse(localStorage.getItem('user'));
     const updatedUser = {
       ...currentUser,

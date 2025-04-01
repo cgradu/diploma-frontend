@@ -9,7 +9,9 @@ import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
 import DashboardPage from './pages/Dashboard';
 import ProfilePage from './pages/Profile';
-import PrivateRoute from './components/common/PrivateRoute';
+import PrivateRoute from './components/common/PrivateRoute';// In your App.js or wherever your routes are defined
+import Charities from './pages/Charities';
+// In your App.js or wherever your routes are defined
 
 const App = () => {
   return (
@@ -19,6 +21,8 @@ const App = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/charities" element={<Charities />} />
+
           <Route 
             path="/dashboard" 
             element={
