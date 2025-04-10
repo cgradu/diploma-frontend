@@ -11,6 +11,9 @@ import DashboardPage from './pages/Dashboard';
 import ProfilePage from './pages/Profile';
 import PrivateRoute from './components/common/PrivateRoute';// In your App.js or wherever your routes are defined
 import Charities from './pages/Charities';
+import DonationPage from './pages/Donation';
+import DonationHistoryPage from './pages/DonationHistory';
+import DonationDetailPage from './pages/DonationDetailPage';
 // In your App.js or wherever your routes are defined
 
 const App = () => {
@@ -39,6 +42,13 @@ const App = () => {
               </PrivateRoute>
             } 
           />
+
+        <Route path="/donate" element={<DonationPage />} />
+        <Route path="/donate/charity/:charityId" element={<DonationPage />} />
+        <Route path="/donate/project/:charityId/:projectId" element={<DonationPage />} />
+        <Route path="/donations/history" element={<DonationHistoryPage />} />
+        <Route path="/donations/:id" element={<DonationDetailPage />} />
+        
         </Routes>
       </Router>
     </Provider>
