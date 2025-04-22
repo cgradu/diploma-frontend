@@ -62,7 +62,8 @@ const Dashboard = () => {
               <div className="mb-4">
                 <h2 className="text-xl font-semibold mb-2">Welcome, {user.name || 'User'}!</h2>
                 <p className="text-gray-600">
-                  Account Type: <span className="font-medium">{user.role === 'donor' ? 'Donor' : 'Charity Organization'}</span>
+                  Account Type: <span className="font-medium">
+                  { user.role === 'donor' ? 'Donor' : user.role === 'admin' ? 'Admin' : 'Charity Organization' }</span>
                 </p>
                 <p className="text-gray-600">
                   Email: <span className="font-medium">{user.email}</span>

@@ -45,13 +45,21 @@ const Navbar = () => {
               >
                 Home
               </Link>
-              <Link
+              {/* <Link
                 to="/how-it-works"
                 className={`text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${
                   isActive('/how-it-works') ? 'bg-blue-700' : ''
                 }`}
               >
                 How It Works
+              </Link> */}
+              <Link
+                to="/dashboard"
+                className={`text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${
+                  isActive('/dashboard') ? 'bg-blue-700' : ''
+                }`}
+              >
+                Dashboard
               </Link>
               <Link
                 to="/charities"
@@ -60,22 +68,6 @@ const Navbar = () => {
                 }`}
               >
                 Explore Charities
-              </Link>
-              <Link
-                to="/about"
-                className={`text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${
-                  isActive('/about') ? 'bg-blue-700' : ''
-                }`}
-              >
-                About Us
-              </Link>
-              <Link
-                to="/contact"
-                className={`text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${
-                  isActive('/contact') ? 'bg-blue-700' : ''
-                }`}
-              >
-                Contact
               </Link>
             </div>
           </div>
@@ -106,14 +98,6 @@ const Navbar = () => {
             ) : (
               <>
                 <span className="text-white mr-2">{user.name}</span>
-                <Link
-                  to="/dashboard"
-                  className={`text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${
-                    isActive('/dashboard') ? 'bg-blue-700' : ''
-                  }`}
-                >
-                  Dashboard
-                </Link>
                 <Link
                   to="/profile"
                   className={`text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-700 ${

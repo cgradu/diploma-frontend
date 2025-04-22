@@ -21,7 +21,7 @@ const DonationForm = ({ initialData, onComplete }) => {
     setCharities([
       { id: 1, name: 'Children Education Foundation' },
       { id: 2, name: 'Clean Water Initiative' },
-      { id: 3, name: 'Homeless Shelter Support' },
+      // { id: 3, name: 'Homeless Shelter Support' },
     ]);
     
     // If a charity is selected, fetch its projects
@@ -146,7 +146,7 @@ const DonationForm = ({ initialData, onComplete }) => {
               }`}
               onClick={() => handleAmountSelect(amount)}
             >
-              ${amount}
+              {amount} RON
             </button>
           ))}
         </div>
@@ -171,7 +171,7 @@ const DonationForm = ({ initialData, onComplete }) => {
               <input
                 type="number"
                 min="1"
-                step="0.01"
+                step="1"
                 value={formData.amount}
                 onChange={handleCustomAmountChange}
                 className={`w-full pl-7 pr-3 py-2 border rounded-md ${
