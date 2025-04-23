@@ -16,7 +16,7 @@ const Profile = () => {
   const [generalInfo, setGeneralInfo] = useState({
     name: '',
     email: '',
-    phoneNumber: '',
+    phone: '',
     address: '',
   });
   
@@ -29,7 +29,7 @@ const Profile = () => {
   // Additional fields based on user type (donor or charity)
   const [specificInfo, setSpecificInfo] = useState({
     // Donor fields
-    preferredCauses: '',
+    preferredCauses: [],
     donationPreferences: '',
     
     // Charity fields
@@ -61,7 +61,7 @@ const Profile = () => {
       setGeneralInfo({
         name: user.name || '',
         email: user.email || '',
-        phoneNumber: user.phoneNumber || '',
+        phone: user.phone || '',
         address: user.address || '',
       });
       
@@ -73,12 +73,12 @@ const Profile = () => {
           missionStatement: user.missionStatement || '',
           organizationType: user.organizationType || '',
           websiteUrl: user.websiteUrl || '',
-          preferredCauses: '',
+          preferredCauses: [],
           donationPreferences: '',
         });
       } else if (user.role === 'donor') {
         setSpecificInfo({
-          preferredCauses: user.preferredCauses || '',
+          preferredCauses: user.preferredCauses || [],
           donationPreferences: user.donationPreferences || '',
           charityName: '',
           registrationNumber: '',
@@ -255,16 +255,16 @@ const Profile = () => {
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phoneNumber">
+                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone">
                   Phone Number
                 </label>
                 <input
                   className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  id="phoneNumber"
-                  name="phoneNumber"
+                  id="phone"
+                  name="phone"
                   type="tel"
                   placeholder="Phone Number"
-                  value={generalInfo.phoneNumber}
+                  value={generalInfo.phone}
                   onChange={handleGeneralInfoChange}
                 />
               </div>

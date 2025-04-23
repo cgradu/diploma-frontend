@@ -1,9 +1,7 @@
-import React, { use } from 'react';
+
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './redux/store';
-import { useEffect } from 'react';
-
 // Pages
 import HomePage from './pages/Home';
 import LoginPage from './pages/Login';
@@ -23,9 +21,6 @@ import CharityProjectsPage from './pages/CharityProjectsPage';
 // In your App.js or wherever your routes are defined
 
 const App = () => {
-  useEffect(() => {
-    console.log(store.getState());
-  }, [store]);
   return (
     <Provider store={store}>
 
@@ -36,7 +31,6 @@ const App = () => {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/charities" element={<Charities />} />
           <Route path="/charities/:charityId/projects" element={<CharityProjectsPage />} />
-
           <Route 
             path="/dashboard" 
             element={
