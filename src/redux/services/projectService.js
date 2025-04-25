@@ -46,14 +46,7 @@ const getProjectsByCharityId = async (charityId, status) => {
       url += `?status=${status}`;
     }
     
-    console.log(`Calling API: ${url}`);
     const response = await axios.get(url);
-    console.log('API Response:', response);
-    
-    // console.log('API Response:', response.status, response.statusText);
-    if (response.data && response.data.data) {
-      console.log(`Received ${response.data.data.length} projects`);
-    }
     
     return response.data.data;
   } catch (error) {

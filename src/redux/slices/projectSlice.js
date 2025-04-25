@@ -189,7 +189,6 @@ export const projectSlice = createSlice({
           } else if (Array.isArray(action.payload)) {
             // If the API returns the array directly
             state.projects = action.payload;
-            console.log('Received projects:', state.projects);
           } else {
             // Fallback
             state.projects = [];

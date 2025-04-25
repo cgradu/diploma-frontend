@@ -43,9 +43,36 @@ export const getCategories = createAsyncThunk(
   }
 );
 
+// Get charity managed by the logged-in user
+export const getManagerCharity = createAsyncThunk(
+  'charities/getManagerCharity',
+  async (_, thunkAPI) => {
+    try {
+      return await charityService.getManagerCharity();
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Update charity details
+export const updateCharityDetails = createAsyncThunk(
+  'charities/updateCharityDetails',
+  async (charityData, thunkAPI) => {
+    try {
+      return await charityService.updateCharityDetails(charityData);
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 const initialState = {
   charities: [],
   charity: null,
+  managerCharity: null, // Added for charity manager
   categories: ['All Categories'], // Default to include "All Categories"
   pagination: {
     page: 1,
@@ -71,6 +98,12 @@ export const charitySlice = createSlice({
     },
     clearCharity: (state) => {
       state.charity = null;
+    },
+    resetCharityState: (state) => {
+      state.isLoading = false;
+      state.isSuccess = false;
+      state.isError = false;
+      state.message = '';
     }
   },
   extraReducers: (builder) => {
@@ -116,6 +149,7 @@ export const charitySlice = createSlice({
         state.isLoading = false;
         state.isSuccess = true;
         state.charity = action.payload;
+        console.log('Fetched charity:', action.payload);
       })
       .addCase(getCharityById.rejected, (state, action) => {
         state.isLoading = false;
@@ -146,9 +180,46 @@ export const charitySlice = createSlice({
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;
+      })
+      
+      // Get Manager Charity cases
+      .addCase(getManagerCharity.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+      })
+      .addCase(getManagerCharity.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.managerCharity = action.payload;
+      })
+      .addCase(getManagerCharity.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+        state.managerCharity = null;
+      })
+      
+      // Update Charity Details cases
+      .addCase(updateCharityDetails.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+      })
+      .addCase(updateCharityDetails.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.managerCharity = action.payload;
+        // If the updated charity is also the currently viewed charity, update that too
+        if (state.charity && state.charity.id === action.payload.id) {
+          state.charity = action.payload;
+        }
+      })
+      .addCase(updateCharityDetails.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
       });
   },
 });
 
-export const { reset, clearCharity } = charitySlice.actions;
+export const { reset, clearCharity, resetCharityState } = charitySlice.actions;
 export default charitySlice.reducer;

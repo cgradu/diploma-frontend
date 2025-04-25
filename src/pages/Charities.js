@@ -17,10 +17,10 @@ const Charities = () => {
   } = useSelector((state) => state.charities);
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [inputSearchTerm, setInputSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchTimeout, setSearchTimeout] = useState(null);
-  const [debugMode, setDebugMode] = useState(false); // Debug mode enabled by default
+  const [debugMode, setDebugMode] = useState(false);
   
   // Add debugging
   useEffect(() => {
@@ -56,14 +56,10 @@ const Charities = () => {
     
     // Cleanup on unmount
     return () => {
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
       dispatch(reset());
     };
-  }, [dispatch, searchTimeout]); // Added searchTimeout to dependency array
+  }, [dispatch]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     // Don't fetch on initial load - that's handled by the first useEffect
     if (currentPage === 1 && searchTerm === '' && selectedCategory === 'All Categories') {
@@ -74,45 +70,50 @@ const Charities = () => {
     console.log('Filters changed, fetching charities with:', { 
       page: currentPage, 
       category: selectedCategory, 
-      search: searchTerm 
+      search: searchTerm
     });
     
-    dispatch(getCharities({ 
+    dispatch(getCharities({
       page: currentPage, 
       category: selectedCategory, 
       search: searchTerm 
     }));
   }, [dispatch, currentPage, selectedCategory, searchTerm]);
 
-  // Handle search with debounce
+  // Handle search input change (just update the input state)
   const handleSearchChange = (e) => {
-    const value = e.target.value;
-    
-    // Clear previous timeout
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
-    }
-    
-    // Set new timeout to debounce search
-    const timeout = setTimeout(() => {
-      console.log('Search term set to:', value);
-      setSearchTerm(value);
+    setInputSearchTerm(e.target.value);
+  };
+  
+  // Handle search input keypress (for Enter key)
+  const handleSearchKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      setSearchTerm(inputSearchTerm);
       setCurrentPage(1); // Reset to first page when search changes
-    }, 500); // 500ms delay
-    
-    setSearchTimeout(timeout);
+    }
   };
 
   // Handle category selection
   const handleCategoryChange = (e) => {
     const value = e.target.value;
     console.log('Category changed to:', value);
+    
+    // Reset search terms when changing category
+    setInputSearchTerm('');
+    setSearchTerm('');
     setSelectedCategory(value);
     setCurrentPage(1); // Reset to first page when filter changes
+    
+    // Trigger a search with new category but cleared search terms
+    dispatch(getCharities({ 
+      page: 1,
+      category: value,
+      search: ''
+    }));
   };
 
   // Handle pagination
-  const paginate = (pageNumber) => {
+  const paginate = (pageNumber) => {  
     console.log('Paginate to:', pageNumber);
     setCurrentPage(pageNumber);
     window.scrollTo(0, 0);
@@ -148,8 +149,10 @@ const Charities = () => {
                   <input
                     type="text"
                     className="block w-full bg-white bg-opacity-20 border-transparent rounded-md py-2 pl-10 pr-3 text-white placeholder-blue-200 focus:outline-none focus:bg-opacity-30 focus:ring-1 focus:ring-blue-400 focus:border-blue-400 sm:text-sm"
-                    placeholder="Search charities by name, location, or cause..."
+                    placeholder="Search charities by name, location, or cause... (press Enter to search)"
+                    value={inputSearchTerm}
                     onChange={handleSearchChange}
+                    onKeyPress={handleSearchKeyPress}
                   />
                 </div>
               </div>
@@ -164,16 +167,32 @@ const Charities = () => {
                   <option value="All Categories" className="text-gray-900">All Categories</option>
                   {categories && categories.length > 0 && (
                     categories.map((category) => (
-                      <option 
-                        key={category} 
-                        value={category}
-                        className="text-gray-900"
-                      >
-                        {category}
-                      </option>
+                      category !== 'All Categories' && (
+                        <option 
+                          key={category} 
+                          value={category}
+                          className="text-gray-900"
+                        >
+                          {category}
+                        </option>
+                      )
                     ))
                   )}
                 </select>
+              </div>
+              
+              {/* Search button */}
+              <div className="sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm(inputSearchTerm);
+                    setCurrentPage(1); // Reset to first page when search changes
+                  }}
+                  className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Search
+                </button>
               </div>
             </div>
           </div>
@@ -213,6 +232,7 @@ const Charities = () => {
                 <div className="mb-1"><span className="font-semibold">Total Pages:</span> {pagination?.totalPages || 0}</div>
                 <div className="mb-1"><span className="font-semibold">Selected Category:</span> {selectedCategory}</div>
                 <div className="mb-1"><span className="font-semibold">Search Term:</span> {searchTerm || 'None'}</div>
+                <div className="mb-1"><span className="font-semibold">Input Search Term:</span> {inputSearchTerm || 'None'}</div>
               </div>
             </div>
             <div className="mt-2">
@@ -269,9 +289,7 @@ const Charities = () => {
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 onClick={() => {
                   // Clear filters
-                  if (searchTimeout) {
-                    clearTimeout(searchTimeout);
-                  }
+                  setInputSearchTerm('');
                   setSearchTerm('');
                   setSelectedCategory('All Categories');
                   

@@ -16,8 +16,7 @@ const CharityProjectsPage = () => {
     isLoading: isLoadingCharity = false, 
     isError: isErrorCharity = false, 
     message: charityMessage = ''
-  } = useSelector(state => state.charity || {});
-  
+  } = useSelector(state => state.charities || {});
   const { 
     projects = [], 
     statuses = [], 
@@ -32,7 +31,7 @@ const CharityProjectsPage = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [inputSearchTerm, setInputSearchTerm] = useState('');
-  const [debugMode, setDebugMode] = useState(true); // Set debug mode to true by default
+  const [debugMode, setDebugMode] = useState(false); // Set debug mode to false by default
   
   // Reset state when component unmounts
   useEffect(() => {
@@ -52,17 +51,6 @@ const CharityProjectsPage = () => {
     console.log('Dispatching getProjectStatuses');
     dispatch(getProjectStatuses());
   }, [dispatch, charityId]);
-  
-  // Log whenever projects are updated
-  useEffect(() => {
-    if (projects && projects.length > 0) {
-      const uniqueStatuses = [...new Set(projects.map(p => p.status))];
-      console.log('Unique status values in projects:', uniqueStatuses);
-    }
-    console.log('Projects updated from Redux store:', projects);
-    console.log('Projects length:', projects?.length || 0);
-    console.log('Projects data structure:', JSON.stringify(projects, null, 2));
-  }, [projects]);
 
   // Handle search input change
   const handleSearchChange = (e) => {
@@ -81,6 +69,9 @@ const CharityProjectsPage = () => {
     const value = e.target.value;
     console.log('Status filter changed to:', value);
     setStatusFilter(value);
+
+    setSearchTerm(''); // Clear search term when changing status filter
+    setInputSearchTerm(''); // Clear input search term
   };
   
   // Toggle debug mode
@@ -102,17 +93,14 @@ const CharityProjectsPage = () => {
   // Filter projects directly during render
   const filteredProjects = (() => {
     if (!projects || !Array.isArray(projects) || projects.length === 0) {
-      console.log('No projects to filter');
       return [];
     }
-    
-    console.log('Filtering projects. Total count:', projects.length);
+
     let filtered = [...projects];
     
     // Apply status filter (if not "All")
     if (statusFilter !== 'All') {
       filtered = filtered.filter(project => project.status === statusFilter);
-      console.log(`After status filter (${statusFilter}):`, filtered.length);
     }
     
     // Apply search filter
@@ -122,14 +110,9 @@ const CharityProjectsPage = () => {
         project.title?.toLowerCase().includes(query) || 
         project.description?.toLowerCase().includes(query)
       );
-      console.log(`After search filter (${searchTerm}):`, filtered.length);
     }
-    
-    console.log('Final filtered projects:', filtered);
     return filtered;
   })();
-  
-  console.log('Render: filteredProjects.length =', filteredProjects?.length || 0);
   
   return (
     <div className="bg-gray-50 min-h-screen">

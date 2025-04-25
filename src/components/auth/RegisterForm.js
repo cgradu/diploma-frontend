@@ -165,7 +165,7 @@ const RegisterForm = () => {
             onChange={handleChange}
           >
             <option value="donor">Donor</option>
-            <option value="charity">Charity</option>
+            <option value="charity">Charity Manager</option>
           </select>
         </div>
         

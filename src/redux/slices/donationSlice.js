@@ -69,6 +69,23 @@ export const getDonationDetails = createAsyncThunk(
   }
 );
 
+// Get charity donation statistics
+export const getCharityDonationStats = createAsyncThunk(
+  'donation/getCharityDonationStats',
+  async (charityId, thunkAPI) => {
+    try {
+      return await donationService.getCharityDonationStats(charityId);
+    } catch (error) {
+      const message = 
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to get charity donation statistics';
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 // Initial state
 const initialState = {
   currentDonation: null,
@@ -76,6 +93,7 @@ const initialState = {
   selectedDonation: null,
   clientSecret: null,
   donationId: null,
+  charityStats: null,
   isLoading: false,
   isSuccess: false,
   isError: false,
@@ -173,6 +191,25 @@ const donationSlice = createSlice({
         state.selectedDonation = action.payload;
       })
       .addCase(getDonationDetails.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = false;
+        state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Get charity donation statistics cases
+      .addCase(getCharityDonationStats.pending, (state) => {
+        state.isLoading = true;
+        state.isSuccess = false;
+        state.isError = false;
+      })
+      .addCase(getCharityDonationStats.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.isError = false;
+        state.charityStats = action.payload;
+      })
+      .addCase(getCharityDonationStats.rejected, (state, action) => {
         state.isLoading = false;
         state.isSuccess = false;
         state.isError = true;

@@ -4,10 +4,12 @@ import { useSelector, useDispatch } from 'react-redux';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import { getProfile, updateProfile, updateProfileDetails, changePassword } from '../redux/slices/authSlice';
+import { getManagerCharity, updateCharityDetails, resetCharityState } from '../redux/slices/charitySlice';
 import { toast } from 'react-toastify';
 
 const Profile = () => {
   const { user, isLoading } = useSelector((state) => state.auth);
+  const { managerCharity, isLoading: charityLoading } = useSelector((state) => state.charities);
   const dispatch = useDispatch();
   const [profileFetchAttempted, setProfileFetchAttempted] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
@@ -26,18 +28,24 @@ const Profile = () => {
     confirmPassword: '',
   });
   
-  // Additional fields based on user type (donor or charity)
-  const [specificInfo, setSpecificInfo] = useState({
-    // Donor fields
+  // Charity information state (for charity managers)
+  const [charityInfo, setCharityInfo] = useState({
+    id: '',
+    name: '',
+    description: '',
+    mission: '',
+    email: '',
+    phone: '',
+    registrationId: '',
+    category: '',
+    address: '',
+    foundedYear: '',
+  });
+  
+  // Donor preferences state (for donors)
+  const [donorInfo, setDonorInfo] = useState({
     preferredCauses: [],
     donationPreferences: '',
-    
-    // Charity fields
-    charityName: '',
-    registrationNumber: '',
-    missionStatement: '',
-    organizationType: '',
-    websiteUrl: '',
   });
   
   // Loading states for different form submissions
@@ -54,6 +62,15 @@ const Profile = () => {
         .catch(error => {
           console.error("Error fetching profile:", error);
         });
+      
+      // If user is a charity manager, fetch their managed charity
+      if (user.role === 'charity') {
+        dispatch(getManagerCharity())
+          .unwrap()
+          .catch(error => {
+            console.error("Error fetching managed charity:", error);
+          });
+      }
     }
     
     // Populate form with user data when available
@@ -65,30 +82,40 @@ const Profile = () => {
         address: user.address || '',
       });
       
-      // Set specific info based on user role
-      if (user.role === 'charity') {
-        setSpecificInfo({
-          charityName: user.charityName || '',
-          registrationNumber: user.registrationNumber || '',
-          missionStatement: user.missionStatement || '',
-          organizationType: user.organizationType || '',
-          websiteUrl: user.websiteUrl || '',
-          preferredCauses: [],
-          donationPreferences: '',
-        });
-      } else if (user.role === 'donor') {
-        setSpecificInfo({
+      // Set donor info if user is a donor
+      if (user.role === 'donor') {
+        setDonorInfo({
           preferredCauses: user.preferredCauses || [],
           donationPreferences: user.donationPreferences || '',
-          charityName: '',
-          registrationNumber: '',
-          missionStatement: '',
-          organizationType: '',
-          websiteUrl: '',
         });
       }
     }
   }, [dispatch, user, profileFetchAttempted]);
+  
+  // Update charity form when charity data is loaded
+  useEffect(() => {
+    if (managerCharity) {
+      setCharityInfo({
+        id: managerCharity.id || '',
+        name: managerCharity.name || '',
+        description: managerCharity.description || '',
+        mission: managerCharity.mission || '',
+        email: managerCharity.email || '',
+        phone: managerCharity.phone || '',
+        registrationId: managerCharity.registrationId || '',
+        category: managerCharity.category || '',
+        address: managerCharity.address || '',
+        foundedYear: managerCharity.foundedYear || '',
+      });
+    }
+  }, [managerCharity]);
+  
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      dispatch(resetCharityState());
+    };
+  }, [dispatch]);
   
   const handleGeneralInfoChange = (e) => {
     setGeneralInfo({
@@ -104,11 +131,28 @@ const Profile = () => {
     });
   };
   
-  const handleSpecificInfoChange = (e) => {
-    setSpecificInfo({
-      ...specificInfo,
+  const handleCharityInfoChange = (e) => {
+    setCharityInfo({
+      ...charityInfo,
       [e.target.name]: e.target.value,
     });
+  };
+  
+  const handleDonorInfoChange = (e) => {
+    const { name, value, type, selectedOptions } = e.target;
+    
+    if (type === 'select-multiple') {
+      const selectedValues = Array.from(selectedOptions, option => option.value);
+      setDonorInfo({
+        ...donorInfo,
+        [name]: selectedValues,
+      });
+    } else {
+      setDonorInfo({
+        ...donorInfo,
+        [name]: value,
+      });
+    }
   };
   
   const handleGeneralSubmit = async (e) => {
@@ -116,7 +160,14 @@ const Profile = () => {
     setIsSubmitting(true);
     
     try {
-      await dispatch(updateProfile(generalInfo)).unwrap();
+      // Add a minimum delay of 800ms to show the loading state
+      const updatePromise = dispatch(updateProfile(generalInfo)).unwrap();
+      const delayPromise = new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Wait for both promises to complete (API call and minimum delay)
+      await Promise.all([updatePromise, delayPromise]);
+      
+      // Display success toast
       toast.success('Profile information updated successfully');
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'An error occurred';
@@ -126,27 +177,50 @@ const Profile = () => {
     }
   };
   
-  const handlePasswordSubmit = async (e) => {
+// Updated password change handler with delay
+const handlePasswordSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  
+  // Validate password inputs
+  if (passwordInfo.newPassword !== passwordInfo.confirmPassword) {
+    toast.error('New passwords do not match');
+    setIsSubmitting(false);
+    return;
+  }
+  
+  try {
+    // Add a minimum delay of 800ms to show the loading state
+    const updatePromise = dispatch(changePassword(passwordInfo)).unwrap();
+    const delayPromise = new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Wait for both promises to complete (API call and minimum delay)
+    await Promise.all([updatePromise, delayPromise]);
+    
+    // Display success toast
+    toast.success('Password changed successfully');
+    
+    // Reset password fields
+    setPasswordInfo({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+  } catch (error) {
+    const message = error.response?.data?.message || error.message || 'An error occurred';
+    toast.error(message);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+  
+  const handleCharitySubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate password inputs
-    if (passwordInfo.newPassword !== passwordInfo.confirmPassword) {
-      toast.error('New passwords do not match');
-      return;
-    }
-    
     setIsSubmitting(true);
     
     try {
-      await dispatch(changePassword(passwordInfo)).unwrap();
-      toast.success('Password changed successfully');
-      
-      // Reset password fields
-      setPasswordInfo({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      await dispatch(updateCharityDetails(charityInfo)).unwrap();
+      toast.success('Charity information updated successfully');
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'An error occurred';
       toast.error(message);
@@ -155,18 +229,13 @@ const Profile = () => {
     }
   };
   
-  const handleSpecificSubmit = async (e) => {
+  const handleDonorSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     try {
-      // Filter out empty fields from the other user type
-      const filteredSpecificInfo = Object.fromEntries(
-        Object.entries(specificInfo).filter(([key, value]) => value !== '')
-      );
-      
-      await dispatch(updateProfileDetails(filteredSpecificInfo)).unwrap();
-      toast.success('Profile details updated successfully');
+      await dispatch(updateProfileDetails(donorInfo)).unwrap();
+      toast.success('Donor preferences updated successfully');
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'An error occurred';
       toast.error(message);
@@ -282,9 +351,12 @@ const Profile = () => {
                   rows="3"
                 />
               </div>
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-500">
+                  {isSubmitting && <span className="flex items-center"><span className="animate-pulse mr-2">●</span> Updating your profile...</span>}
+                </div>
                 <button
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-all duration-200 ease-in-out"
                   type="submit"
                   disabled={isSubmitting}
                 >
@@ -296,155 +368,257 @@ const Profile = () => {
           
           {/* Password Change Form */}
           {activeTab === 'password' && (
-            <form onSubmit={handlePasswordSubmit} className="p-6">
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="currentPassword">
-                  Current Password
-                </label>
-                <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  id="currentPassword"
-                  name="currentPassword"
-                  type="password"
-                  placeholder="Current Password"
-                  value={passwordInfo.currentPassword}
-                  onChange={handlePasswordChange}
-                  required
-                />
+          <form onSubmit={handlePasswordSubmit} className="p-6">
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="currentPassword">
+                Current Password
+              </label>
+              <input
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="currentPassword"
+                name="currentPassword"
+                type="password"
+                placeholder="Current Password"
+                value={passwordInfo.currentPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="newPassword">
+                New Password
+              </label>
+              <input
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                placeholder="New Password"
+                value={passwordInfo.newPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </div>
+            <div className="mb-6">
+              <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
+                Confirm New Password
+              </label>
+              <input
+                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="Confirm New Password"
+                value={passwordInfo.confirmPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                {isSubmitting && (
+                  <span className="flex items-center">
+                    <span className="animate-pulse mr-2">●</span> Updating password...
+                  </span>
+                )}
               </div>
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="newPassword">
-                  New Password
-                </label>
-                <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  id="newPassword"
-                  name="newPassword"
-                  type="password"
-                  placeholder="New Password"
-                  value={passwordInfo.newPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  minLength="6"
-                />
-              </div>
-              <div className="mb-6">
-                <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
-                  Confirm New Password
-                </label>
-                <input
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  placeholder="Confirm New Password"
-                  value={passwordInfo.confirmPassword}
-                  onChange={handlePasswordChange}
-                  required
-                  minLength="6"
-                />
-              </div>
-              <div className="flex items-center justify-end">
-                <button
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                  type="submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Changing...' : 'Change Password'}
-                </button>
-              </div>
-            </form>
-          )}
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition-all duration-200 ease-in-out"
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Updating...' : 'Change Password'}
+              </button>
+            </div>
+            
+            <div className="mt-4 text-xs text-gray-500">
+              <p>Password requirements:</p>
+              <ul className="list-disc ml-5 mt-1">
+                <li>At least 8 characters long</li>
+                <li>Include uppercase and lowercase letters</li>
+                <li>Include at least one number</li>
+                <li>Include at least one special character</li>
+              </ul>
+            </div>
+          </form>
+        )}
           
           {/* User Type Specific Form */}
           {activeTab === 'specific' && user && (
-            <form onSubmit={handleSpecificSubmit} className="p-6">
-              {user.role === 'charity' ? (
-                // Charity specific fields
-                <>
-                  <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="charityName">
-                      Organization Name
-                    </label>
-                    <input
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      id="charityName"
-                      name="charityName"
-                      type="text"
-                      placeholder="Organization Name"
-                      value={specificInfo.charityName}
-                      onChange={handleSpecificInfoChange}
-                      required
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="registrationNumber">
-                      Registration Number
-                    </label>
-                    <input
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      id="registrationNumber"
-                      name="registrationNumber"
-                      type="text"
-                      placeholder="Official Registration Number"
-                      value={specificInfo.registrationNumber}
-                      onChange={handleSpecificInfoChange}
-                      required
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="organizationType">
-                      Organization Type
-                    </label>
-                    <select
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      id="organizationType"
-                      name="organizationType"
-                      value={specificInfo.organizationType}
-                      onChange={handleSpecificInfoChange}
-                      required
-                    >
-                      <option value="">Select Organization Type</option>
-                      <option value="nonprofit">Non-Profit</option>
-                      <option value="ngo">NGO</option>
-                      <option value="foundation">Foundation</option>
-                      <option value="trust">Charitable Trust</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="websiteUrl">
-                      Website URL
-                    </label>
-                    <input
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      id="websiteUrl"
-                      name="websiteUrl"
-                      type="url"
-                      placeholder="https://yourcharity.org"
-                      value={specificInfo.websiteUrl}
-                      onChange={handleSpecificInfoChange}
-                    />
-                  </div>
-                  <div className="mb-6">
-                    <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="missionStatement">
-                      Mission Statement
-                    </label>
-                    <textarea
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      id="missionStatement"
-                      name="missionStatement"
-                      placeholder="Your organization's mission..."
-                      value={specificInfo.missionStatement}
-                      onChange={handleSpecificInfoChange}
-                      rows="4"
-                      required
-                    />
-                  </div>
-                </>
-              ) : (
-                // Donor specific fields
-                <>
+            <>
+              {user.role === 'charity' && (
+                // Charity specific form
+                <form onSubmit={handleCharitySubmit} className="p-6">
+                  {charityLoading ? (
+                    <div className="text-center py-4">Loading charity information...</div>
+                  ) : !managerCharity ? (
+                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6">
+                      <p>No charity organization found. Please contact an administrator if you believe this is an error.</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="name">
+                          Organization Name
+                        </label>
+                        <input
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="name"
+                          name="name"
+                          type="text"
+                          placeholder="Organization Name"
+                          value={charityInfo.name}
+                          onChange={handleCharityInfoChange}
+                          required
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="registrationId">
+                          Registration Number
+                        </label>
+                        <input
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="registrationId"
+                          name="registrationId"
+                          type="text"
+                          placeholder="Official Registration Number"
+                          value={charityInfo.registrationId}
+                          onChange={handleCharityInfoChange}
+                          required
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="category">
+                          Organization Type
+                        </label>
+                        <select
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="category"
+                          name="category"
+                          value={charityInfo.category}
+                          onChange={handleCharityInfoChange}
+                          required
+                        >
+                          <option value="">Select Organization Type</option>
+                          <option value="EDUCATION">Education</option>
+                          <option value="HEALTHCARE">Healthcare</option>
+                          <option value="ENVIRONMENT">Environment</option>
+                          <option value="HUMANITARIAN">Humanitarian</option>
+                          <option value="ANIMAL_WELFARE">Animal Welfare</option>
+                          <option value="ARTS_CULTURE">Arts & Culture</option>
+                          <option value="DISASTER_RELIEF">Disaster Relief</option>
+                          <option value="HUMAN_RIGHTS">Human Rights</option>
+                          <option value="COMMUNITY_DEVELOPMENT">Community Development</option>
+                          <option value="RELIGIOUS">Religious</option>
+                          <option value="OTHER">Other</option>
+                        </select>
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+                          Organization Email
+                        </label>
+                        <input
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="email"
+                          name="email"
+                          type="email"
+                          placeholder="contact@yourcharity.org"
+                          value={charityInfo.email}
+                          onChange={handleCharityInfoChange}
+                          required
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="phone">
+                          Organization Phone
+                        </label>
+                        <input
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="Phone Number"
+                          value={charityInfo.phone || ''}
+                          onChange={handleCharityInfoChange}
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="address">
+                          Address
+                        </label>
+                        <input
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="address"
+                          name="address"
+                          type="text"
+                          placeholder="Organization Address"
+                          value={charityInfo.address || ''}
+                          onChange={handleCharityInfoChange}
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="foundedYear">
+                          Founded Year
+                        </label>
+                        <input
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="foundedYear"
+                          name="foundedYear"
+                          type="number"
+                          placeholder="Year Founded"
+                          min="1800"
+                          max={new Date().getFullYear()}
+                          value={charityInfo.foundedYear || ''}
+                          onChange={handleCharityInfoChange}
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="description">
+                          Description
+                        </label>
+                        <textarea
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="description"
+                          name="description"
+                          placeholder="Brief description of your organization..."
+                          value={charityInfo.description}
+                          onChange={handleCharityInfoChange}
+                          rows="3"
+                          required
+                        />
+                      </div>
+                      <div className="mb-6">
+                        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="mission">
+                          Mission Statement
+                        </label>
+                        <textarea
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          id="mission"
+                          name="mission"
+                          placeholder="Your organization's mission..."
+                          value={charityInfo.mission}
+                          onChange={handleCharityInfoChange}
+                          rows="4"
+                          required
+                        />
+                      </div>
+                      <div className="flex items-center justify-end">
+                        <button
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                          type="submit"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? 'Updating...' : 'Update Charity Information'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </form>
+              )}
+              
+              {user.role === 'donor' && (
+                // Donor specific form
+                <form onSubmit={handleDonorSubmit} className="p-6">
                   <div className="mb-4">
                     <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="preferredCauses">
                       Preferred Causes
@@ -453,8 +627,8 @@ const Profile = () => {
                       className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                       id="preferredCauses"
                       name="preferredCauses"
-                      value={specificInfo.preferredCauses}
-                      onChange={handleSpecificInfoChange}
+                      value={donorInfo.preferredCauses}
+                      onChange={handleDonorInfoChange}
                       multiple
                     >
                       <option value="education">Education</option>
@@ -477,23 +651,23 @@ const Profile = () => {
                       id="donationPreferences"
                       name="donationPreferences"
                       placeholder="Any specific preferences for your donations..."
-                      value={specificInfo.donationPreferences}
-                      onChange={handleSpecificInfoChange}
+                      value={donorInfo.donationPreferences}
+                      onChange={handleDonorInfoChange}
                       rows="4"
                     />
                   </div>
-                </>
+                  <div className="flex items-center justify-end">
+                    <button
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                      type="submit"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Updating...' : 'Update Preferences'}
+                    </button>
+                  </div>
+                </form>
               )}
-              <div className="flex items-center justify-end">
-                <button
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-                  type="submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? 'Updating...' : 'Update Details'}
-                </button>
-              </div>
-            </form>
+            </>
           )}
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 import axios from '../../utils/axiosConfig';
 
 const donationService = {
@@ -28,8 +27,14 @@ const donationService = {
   
   // Get donation statistics for a charity
   getCharityDonationStats: async (charityId) => {
-    const response = await axios.get(`/donations/charity/${charityId}/stats`);
-    return response.data;
+    try {
+      const response = await axios.get(`/donations/charity/${charityId}/stats`);
+      console.log('Charity donation stats response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching charity donation stats:', error);
+      throw error;
+    }
   }
 };
 
