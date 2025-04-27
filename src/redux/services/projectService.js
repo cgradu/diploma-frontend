@@ -28,7 +28,8 @@ const getAllProjects = async (page = 1, limit = 10, filters = {}) => {
 const getProjectById = async (projectId) => {
   try {
     const response = await axios.get(`/projects/${projectId}`);
-    return response.data;
+    console.log('Project response:', response.data.data);
+    return response.data.data;
   } catch (error) {
     console.error('Error fetching project by ID:', error);
     throw error;

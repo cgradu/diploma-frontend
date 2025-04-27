@@ -10,10 +10,10 @@ import DashboardPage from './pages/Dashboard';
 import ProfilePage from './pages/Profile';
 import PrivateRoute from './components/common/PrivateRoute';// In your App.js or wherever your routes are defined
 import Charities from './pages/Charities';
+import CharityProfilePage from './pages/CharityProfile';
 import DonationPage from './pages/Donation';
 import DonationHistoryPage from './pages/DonationHistory';
 import DonationDetailPage from './pages/DonationDetailPage';
-import ProjectsPage from './pages/ProjectsPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import EditProjectPage from './pages/EditProjectPage';
 import CharityProjectsPage from './pages/CharityProjectsPage';
@@ -30,6 +30,7 @@ const App = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/charities" element={<Charities />} />
+          <Route path="/charities/:charityId" element={<CharityProfilePage />} />
           <Route path="/charities/:charityId/projects" element={<CharityProjectsPage />} />
           <Route 
             path="/dashboard" 
@@ -53,7 +54,6 @@ const App = () => {
         <Route path="/donate/project/:charityId/:projectId" element={<DonationPage />} />
         <Route path="/donations/history" element={<DonationHistoryPage />} />
         <Route path="/donations/:id" element={<DonationDetailPage />} />
-        <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/projects/:id" element={<ProjectDetailPage />} />
         <Route path="/dashboard/projects/edit/:id" element={<EditProjectPage />} />
         

@@ -31,7 +31,7 @@ const CharityProjectsPage = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [inputSearchTerm, setInputSearchTerm] = useState('');
-  const [debugMode, setDebugMode] = useState(false); // Set debug mode to false by default
+  const [debugMode, setDebugMode] = useState(false); // Set debug mode to false by chandefault
   
   // Reset state when component unmounts
   useEffect(() => {

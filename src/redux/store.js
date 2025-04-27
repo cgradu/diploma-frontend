@@ -12,7 +12,6 @@ export const store = configureStore({
     charities: charityReducer,
     donations: donationReducer,
     projects: projectReducer,
-    // Add other reducers here
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

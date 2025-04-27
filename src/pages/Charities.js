@@ -393,7 +393,7 @@ const Charities = () => {
                   {/* Action buttons */}
                   <div className="flex justify-between mt-4">
                     <Link 
-                      to={`/charities/${charity.id}/projects`}
+                      to={`/charities/${charity.id}`}
                       className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
                     >
                       View Details

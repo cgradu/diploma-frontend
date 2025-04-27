@@ -9,6 +9,8 @@ import DonationSuccess from '../components/donation/DonationSuccess';
 import Spinner from '../components/common/Spinner';
 import { createPaymentIntent, resetDonationState, clearCurrentDonation } from '../redux/slices/donationSlice';
 import Navbar from '../components/layout/Navbar';
+import {getCharities } from '../redux/slices/charitySlice';
+import { getProjectsByCharityId } from '../redux/slices/projectSlice';
 
 
 // Initialize Stripe with your publishable key
@@ -18,7 +20,6 @@ const DonationPage = () => {
   const { charityId, projectId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
   const [step, setStep] = useState(1);
   const [donationData, setDonationData] = useState({
     amount: 25,
@@ -30,11 +31,13 @@ const DonationPage = () => {
   });
   
   const { user } = useSelector((state) => state.auth || {});
+  const { charities } = useSelector((state) => state.charities || {});
+  const { projects} = useSelector((state) => state.projects || {});
   const donation = useSelector((state) => state.donation || {});
   
   // Safely extract values from the donation state
   const { 
-    clientSecret = null, 
+    clientSecret = null,
     donationId = null, 
     currentDonation = null, 
     isLoading = false, 
@@ -42,13 +45,14 @@ const DonationPage = () => {
     isError = false, 
     message = '' 
   } = donation;
-  
-  // Redirect to login if not authenticated
+
   useEffect(() => {
-    if (!user) {
-      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+    // Fetch charities if not already fetched
+    if (!charities.length) {
+      dispatch(getCharities());
     }
-  }, [user, navigate]);
+
+  }, [dispatch, charities.length]);
   
   // Handle payment intent creation success
   useEffect(() => {

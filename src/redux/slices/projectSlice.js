@@ -113,7 +113,7 @@ export const getProjectStatuses = createAsyncThunk(
 
 // Project slice
 export const projectSlice = createSlice({
-  name: 'project',
+  name: 'projects',
   initialState,
   reducers: {
     reset: (state) => {
@@ -158,9 +158,17 @@ export const projectSlice = createSlice({
       .addCase(getProjectById.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        // Handle API response structure
-        if (action.payload && action.payload.data) {
-          state.project = action.payload.data;
+        
+        // Try to handle various response formats
+        if (action.payload) {
+          if (action.payload.data) {
+            // If response has .data property
+            state.project = action.payload.data;
+          } else {
+            // If response is the data directly
+            state.project = action.payload;
+          }
+          console.log('Project set to:', state.project);
         }
       })
       .addCase(getProjectById.rejected, (state, action) => {

@@ -4,9 +4,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   getProjectById, 
-  reset, 
-  clearProject, 
-  deleteProject 
+  reset,
+  clearProject,
+  deleteProject
 } from '../../redux/slices/projectSlice';
 import { 
   Box, 
@@ -111,7 +111,8 @@ const ProjectDetail = () => {
   const { id } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { project, isLoading, isError, message, isSuccess } = useSelector(state => state.project);
+  const { project, isLoading, isError, message } = useSelector(state => state.projects || {});
+  console.log(project);
   const { user } = useSelector(state => state.auth);
   
   // State for UI elements
@@ -215,11 +216,11 @@ const ProjectDetail = () => {
       {/* Back button */}
       <Button 
         component={Link} 
-        to={project.Charity ? `/charities/${project.Charity.id}` : '/projects'} 
+        to={project.charity ? `/charities/${project.charity.id}` : '/projects'}
         startIcon={<ChevronLeft />} 
         sx={{ mb: 2 }}
       >
-        {project.Charity ? `Back to ${project.Charity.name}` : 'Back to Projects'}
+        {project.charity ? `Back to ${project.charity.name}` : 'Back to Projects'}
       </Button>
       
       <Grid container spacing={3}>
@@ -430,7 +431,7 @@ const ProjectDetail = () => {
                   </Alert>
                 )}
                 
-                {project.donationsCount > project.recentDonations?.length && (
+                {project.donationsCount > (project.recentDonations?.length || 0) && (
                   <Typography variant="body2" textAlign="center" color="text.secondary" sx={{ mt: 2 }}>
                     + {project.donationsCount - project.recentDonations.length} more donations not shown
                   </Typography>
@@ -471,7 +472,7 @@ const ProjectDetail = () => {
                               <TableCell>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                   <Typography variant="body2" sx={{ mr: 1 }}>
-                                    {donation.transactionHash.substring(0, 10)}...
+                                    {donation.transactionHash?.substring(0, 10)}...
                                   </Typography>
                                   <Tooltip title="Copy Transaction Hash">
                                     <IconButton 
@@ -702,7 +703,7 @@ const ProjectDetail = () => {
                   size="large" 
                   startIcon={<CreditCard />}
                   component={Link}
-                  to={`/donation?projectId=${project.id}&charityId=${project.Charity.id}`}
+                  to={`/donation?projectId=${project.id}&charityId=${project.Charity?.id}`}
                   disabled={project.status !== 'ACTIVE' || hasProjectEnded()}
                 >
                   Donate Now
@@ -825,186 +826,186 @@ const ProjectDetail = () => {
                       </Box>
                       
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                        <Typography variant="body1" fontWeight="bold">
-                          {formatCurrency(donation.amount)}
-                        </Typography>
-                        
-                        {donation.verified && (
-                          <Tooltip title="Blockchain Verified">
-                            <VerifiedUser color="success" fontSize="small" />
-                          </Tooltip>
-                        )}
-                      </Box>
-                      
-                      {donation.message && (
-                        <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
-                          "{donation.message}"
-                        </Typography>
-                      )}
-                    </Box>
-                  ))}
-                  
-                  {project.donationsCount > 5 && (
-                    <Box sx={{ textAlign: 'center' }}>
-                      <Button 
-                        size="small" 
-                        onClick={() => setTabValue(1)} 
-                        sx={{ textTransform: 'none' }}
-                      >
-                        View all {project.donationsCount} donations
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-              ) : (
-                <Alert severity="info" icon={<Info />}>
-                  No donations yet. Be the first to donate!
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Call to action card */}
-          <Card sx={{ mt: 3, display: { xs: 'block', md: 'none' } }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Support This Project
-              </Typography>
-              
-              <Box sx={{ mt: 2 }}>
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  size="large" 
-                  startIcon={<CreditCard />}
-                  component={Link}
-                  to={`/donation?projectId=${project.id}&charityId=${project.Charity.id}`}
-                  disabled={project.status !== 'ACTIVE' || hasProjectEnded()}
-                  fullWidth
-                  sx={{ mb: 2 }}
-                >
-                  Donate Now
-                </Button>
-                
-                <Button 
-                  variant="outlined" 
-                  color="primary" 
-                  startIcon={<Share />}
-                  onClick={handleShare}
-                  fullWidth
-                >
-                  Share
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-          
-          {/* Project status card */}
-          <Card sx={{ mt: 3 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Project Status
-              </Typography>
-              
-              <Divider sx={{ mb: 2 }} />
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">Status:</Typography>
-                <StatusBadge status={project.status} />
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">Created:</Typography>
-                <Typography variant="body2">{moment(project.createdAt).format('MMM D, YYYY')}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">Last Updated:</Typography>
-                <Typography variant="body2">{moment(project.updatedAt).format('MMM D, YYYY')}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">Progress:</Typography>
-                <Typography variant="body2">{project.progressPercentage}% funded</Typography>
-              </Box>
-              
-              {project.endDate && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary">Ends In:</Typography>
-                  <Typography variant="body2">
-                    {project.daysRemaining > 0 
-                      ? `${project.daysRemaining} days` 
-                      : 'Campaign ended'}
-                  </Typography>
-                </Box>
-              )}
-              
-              <Divider sx={{ my: 2 }} />
-              
-              <Typography variant="subtitle2" gutterBottom>
-                Quick Stats
-              </Typography>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" color="text.secondary">Raised:</Typography>
-                <Typography variant="body2">{formatCurrency(project.currentAmount)}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" color="text.secondary">Goal:</Typography>
-                <Typography variant="body2">{formatCurrency(project.goal)}</Typography>
-              </Box>
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography variant="body2" color="text.secondary">Donations:</Typography>
-                <Typography variant="body2">{project.donationsCount || 0}</Typography>
-              </Box>
-              
-              {project.recentDonations && (
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2" color="text.secondary">Verified:</Typography>
-                  <Typography variant="body2">
-                    {project.recentDonations.filter(d => d.verified).length} donations
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-      
-      {/* Delete confirmation dialog */}
-      <Dialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-      >
-        <DialogTitle>Delete Project</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this project? 
-            {project.donationsCount > 0 ? 
-              " Since this project has donations, it will be marked as 'CANCELLED' instead of being permanently deleted." :
-              " This action cannot be undone."}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" variant="contained">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-      
-      {/* Snackbar for share confirmation */}
-      <Snackbar
-        open={showShareSnackbar}
-        autoHideDuration={3000}
-        onClose={() => setShowShareSnackbar(false)}
-        message="Copied to clipboard!"
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
-    </Box>
-  );
+                       <Typography variant="body1" fontWeight="bold">
+                         {formatCurrency(donation.amount)}
+                       </Typography>
+                       
+                       {donation.verified && (
+                         <Tooltip title="Blockchain Verified">
+                           <VerifiedUser color="success" fontSize="small" />
+                         </Tooltip>
+                       )}
+                     </Box>
+                     
+                     {donation.message && (
+                       <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
+                         "{donation.message}"
+                       </Typography>
+                     )}
+                   </Box>
+                 ))}
+                 
+                 {project.donationsCount > 5 && (
+                   <Box sx={{ textAlign: 'center' }}>
+                     <Button 
+                       size="small" 
+                       onClick={() => setTabValue(1)} 
+                       sx={{ textTransform: 'none' }}
+                     >
+                       View all {project.donationsCount} donations
+                     </Button>
+                   </Box>
+                 )}
+               </Box>
+             ) : (
+               <Alert severity="info" icon={<Info />}>
+                 No donations yet. Be the first to donate!
+               </Alert>
+             )}
+           </CardContent>
+         </Card>
+         
+         {/* Call to action card */}
+         <Card sx={{ mt: 3, display: { xs: 'block', md: 'none' } }}>
+           <CardContent>
+             <Typography variant="h6" gutterBottom>
+               Support This Project
+             </Typography>
+             
+             <Box sx={{ mt: 2 }}>
+               <Button 
+                 variant="contained" 
+                 color="primary" 
+                 size="large" 
+                 startIcon={<CreditCard />}
+                 component={Link}
+                 to={`/donation?projectId=${project.id}&charityId=${project.Charity?.id}`}
+                 disabled={project.status !== 'ACTIVE' || hasProjectEnded()}
+                 fullWidth
+                 sx={{ mb: 2 }}
+               >
+                 Donate Now
+               </Button>
+               
+               <Button 
+                 variant="outlined" 
+                 color="primary" 
+                 startIcon={<Share />}
+                 onClick={handleShare}
+                 fullWidth
+               >
+                 Share
+               </Button>
+             </Box>
+           </CardContent>
+         </Card>
+         
+         {/* Project status card */}
+         <Card sx={{ mt: 3 }}>
+           <CardContent>
+             <Typography variant="h6" gutterBottom>
+               Project Status
+             </Typography>
+             
+             <Divider sx={{ mb: 2 }} />
+             
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+               <Typography variant="body2" color="text.secondary">Status:</Typography>
+               <StatusBadge status={project.status} />
+             </Box>
+             
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+               <Typography variant="body2" color="text.secondary">Created:</Typography>
+               <Typography variant="body2">{moment(project.createdAt).format('MMM D, YYYY')}</Typography>
+             </Box>
+             
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+               <Typography variant="body2" color="text.secondary">Last Updated:</Typography>
+               <Typography variant="body2">{moment(project.updatedAt).format('MMM D, YYYY')}</Typography>
+             </Box>
+             
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+               <Typography variant="body2" color="text.secondary">Progress:</Typography>
+               <Typography variant="body2">{project.progressPercentage}% funded</Typography>
+             </Box>
+             
+             {project.endDate && (
+               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                 <Typography variant="body2" color="text.secondary">Ends In:</Typography>
+                 <Typography variant="body2">
+                   {project.daysRemaining > 0 
+                     ? `${project.daysRemaining} days` 
+                     : 'Campaign ended'}
+                 </Typography>
+               </Box>
+             )}
+             
+             <Divider sx={{ my: 2 }} />
+             
+             <Typography variant="subtitle2" gutterBottom>
+               Quick Stats
+             </Typography>
+             
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+               <Typography variant="body2" color="text.secondary">Raised:</Typography>
+               <Typography variant="body2">{formatCurrency(project.currentAmount)}</Typography>
+             </Box>
+             
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+               <Typography variant="body2" color="text.secondary">Goal:</Typography>
+               <Typography variant="body2">{formatCurrency(project.goal)}</Typography>
+             </Box>
+             
+             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+               <Typography variant="body2" color="text.secondary">Donations:</Typography>
+               <Typography variant="body2">{project.donationsCount || 0}</Typography>
+             </Box>
+             
+             {project.recentDonations && (
+               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                 <Typography variant="body2" color="text.secondary">Verified:</Typography>
+                 <Typography variant="body2">
+                   {project.recentDonations.filter(d => d.verified).length} donations
+                 </Typography>
+               </Box>
+             )}
+           </CardContent>
+         </Card>
+       </Grid>
+     </Grid>
+     
+     {/* Delete confirmation dialog */}
+     <Dialog
+       open={openDeleteDialog}
+       onClose={() => setOpenDeleteDialog(false)}
+     >
+       <DialogTitle>Delete Project</DialogTitle>
+       <DialogContent>
+         <DialogContentText>
+           Are you sure you want to delete this project? 
+           {project.donationsCount > 0 ? 
+             " Since this project has donations, it will be marked as 'CANCELLED' instead of being permanently deleted." :
+             " This action cannot be undone."}
+         </DialogContentText>
+       </DialogContent>
+       <DialogActions>
+         <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
+         <Button onClick={handleDelete} color="error" variant="contained">
+           Delete
+         </Button>
+       </DialogActions>
+     </Dialog>
+     
+     {/* Snackbar for share confirmation */}
+     <Snackbar
+       open={showShareSnackbar}
+       autoHideDuration={3000}
+       onClose={() => setShowShareSnackbar(false)}
+       message="Copied to clipboard!"
+       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+     />
+   </Box>
+ );
 };
 
 export default ProjectDetail;
