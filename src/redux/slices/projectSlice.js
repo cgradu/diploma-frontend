@@ -45,11 +45,33 @@ export const getProjectById = createAsyncThunk(
   }
 );
 
-// Get projects by charity ID
+// frontend/src/redux/slices/projectSlice.js
+// Update the getProjectsByCharityId action
+
 export const getProjectsByCharityId = createAsyncThunk(
   'projects/getByCharityId',
-  async ({ charityId, status }, thunkAPI) => {
+  async (params, thunkAPI) => {
     try {
+      // Handle different ways the function might be called
+      let charityId, status;
+      
+      // If called with just a charityId string
+      if (typeof params === 'string' || typeof params === 'number') {
+        charityId = params;
+        status = null;
+      } 
+      // If called with an object {charityId, status}
+      else if (params && typeof params === 'object') {
+        charityId = params.charityId;
+        status = params.status;
+      }
+      
+      // Validate charityId
+      if (!charityId) {
+        console.warn('getProjectsByCharityId: Missing or invalid charityId');
+        return [];
+      }
+      
       const response = await projectService.getProjectsByCharityId(charityId, status);
       return response;
     } catch (error) {

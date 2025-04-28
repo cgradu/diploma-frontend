@@ -11,7 +11,7 @@ import ProfilePage from './pages/Profile';
 import PrivateRoute from './components/common/PrivateRoute';// In your App.js or wherever your routes are defined
 import Charities from './pages/Charities';
 import CharityProfilePage from './pages/CharityProfile';
-import DonationPage from './pages/Donation';
+import DonationPage from './pages/DonationPage';
 import DonationHistoryPage from './pages/DonationHistory';
 import DonationDetailPage from './pages/DonationDetailPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';

@@ -36,20 +36,27 @@ const getProjectById = async (projectId) => {
   }
 };
 
-// Get projects for a specific charity - using the route: /charity/:charityId
-const getProjectsByCharityId = async (charityId, status) => {
+// Get projects for a specific charity
+const getProjectsByCharityId = async (charityId, status = null) => {
   try {
-    // Build the URL based on the API route you provided
+    // Validate charityId before making the API call
+    if (!charityId) {
+      console.warn('getProjectsByCharityId called with undefined charityId');
+      return { data: [] };
+    }
+    
+    // Build the URL based on the API route
     let url = `/projects/charity/${charityId}`;
     
-    // Add status filter as a query parameter if provided
+    // Add status filter if provided
     if (status) {
       url += `?status=${status}`;
     }
     
+    console.log(`Making API request to: ${url}`);
     const response = await axios.get(url);
     
-    return response.data.data;
+    return response.data;
   } catch (error) {
     console.error('Error fetching charity projects:', error);
     if (error.response) {

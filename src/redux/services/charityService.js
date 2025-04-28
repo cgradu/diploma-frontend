@@ -1,21 +1,26 @@
 // src/redux/services/charityService.js
 import axios from '../../utils/axiosConfig';
 
-// Get all charities with optional filtering
+// Get all charities with optional filtering and pagination
+// Get all charities with optional filtering and pagination
 const getCharities = async (params = {}) => {
   try {
-    const { page = 1, limit = 6, search = '', category = '' } = params;
+    const { page, limit, search = '', category = '', all = false } = params;
     
-    // Build the query string
+    // Build the query string with only defined parameters
     const queryParams = new URLSearchParams();
-    queryParams.append('page', page);
-    queryParams.append('limit', limit);
+    if (page) queryParams.append('page', page);
+    if (limit) queryParams.append('limit', limit);
     if (search) queryParams.append('search', search);
     if (category && category !== 'All Categories') queryParams.append('category', category);
+    if (all) queryParams.append('all', 'true');
     
-    console.log('Fetching charities with URL:', `/charities?${queryParams.toString()}`);
+    const queryString = queryParams.toString();
+    const url = `/charities${queryString ? `?${queryString}` : ''}`;
     
-    const response = await axios.get(`/charities?${queryParams.toString()}`);
+    console.log('Fetching charities with URL:', url);
+    
+    const response = await axios.get(url);
     console.log('Charity data received:', response.data);
     
     return response.data.data;

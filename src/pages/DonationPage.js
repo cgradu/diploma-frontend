@@ -1,3 +1,4 @@
+// src/pages/DonationPage.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -9,12 +10,23 @@ import DonationSuccess from '../components/donation/DonationSuccess';
 import Spinner from '../components/common/Spinner';
 import { createPaymentIntent, resetDonationState, clearCurrentDonation } from '../redux/slices/donationSlice';
 import Navbar from '../components/layout/Navbar';
-import {getCharities } from '../redux/slices/charitySlice';
+import { getCharities } from '../redux/slices/charitySlice';
 import { getProjectsByCharityId } from '../redux/slices/projectSlice';
-
+import { 
+  selectUser, 
+  selectCharities, 
+  selectCharitiesLoading,
+  selectDonationClientSecret,
+  selectDonationId,
+  selectCurrentDonation,
+  selectDonationLoading,
+  selectDonationSuccess,
+  selectDonationError,
+  selectDonationMessage
+} from '../redux/selectors';
 
 // Initialize Stripe with your publishable key
-const stripePromise = loadStripe('pk_test_51RByuLJIJuqGirfSmV1VElWUW47yHuFQi9qMSihJoNe96YBnnHuguOi12NHrpiY5T2TUimELhyTLpHwGMpvNmEy300LVAjEPuB');
+const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY || 'pk_test_51RByuLJIJuqGirfSmV1VElWUW47yHuFQi9qMSihJoNe96YBnnHuguOi12NHrpiY5T2TUimELhyTLpHwGMpvNmEy300LVAjEPuB');
 
 const DonationPage = () => {
   const { charityId, projectId } = useParams();
@@ -30,21 +42,26 @@ const DonationPage = () => {
     currency: 'RON'
   });
   
-  const { user } = useSelector((state) => state.auth || {});
-  const { charities } = useSelector((state) => state.charities || {});
-  const { projects} = useSelector((state) => state.projects || {});
-  const donation = useSelector((state) => state.donation || {});
+  // Use memoized selectors
+  const user = useSelector(selectUser);
+  const charities = useSelector(selectCharities);
+  const charitiesLoading = useSelector(selectCharitiesLoading);
   
-  // Safely extract values from the donation state
-  const { 
-    clientSecret = null,
-    donationId = null, 
-    currentDonation = null, 
-    isLoading = false, 
-    isSuccess = false, 
-    isError = false, 
-    message = '' 
-  } = donation;
+  // Donation state with selectors
+  const clientSecret = useSelector(selectDonationClientSecret);
+  const donationId = useSelector(selectDonationId);
+  const currentDonation = useSelector(selectCurrentDonation);
+  const isLoading = useSelector(selectDonationLoading);
+  const isSuccess = useSelector(selectDonationSuccess);
+  const isError = useSelector(selectDonationError);
+  const message = useSelector(selectDonationMessage);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     // Fetch charities if not already fetched
@@ -52,7 +69,11 @@ const DonationPage = () => {
       dispatch(getCharities());
     }
 
-  }, [dispatch, charities.length]);
+    // If charityId is provided, fetch its projects
+    if (charityId) {
+      dispatch(getProjectsByCharityId(charityId));
+    }
+  }, [dispatch, charities.length, charityId]);
   
   // Handle payment intent creation success
   useEffect(() => {
@@ -92,7 +113,7 @@ const DonationPage = () => {
     setStep(3);
   };
   
-  if (isLoading) {
+  if (isLoading || charitiesLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
