@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const DonationSuccess = ({ donation }) => {
+const DonationSuccess = ({ donations }) => {
   return (
     <div className="text-center py-8">
       <div className="flex justify-center mb-6">
@@ -22,15 +22,15 @@ const DonationSuccess = ({ donation }) => {
         <div className="space-y-2">
           <p className="flex justify-between">
             <span className="text-gray-600">Amount:</span>
-            <span className="font-medium">${donation?.amount.toFixed(2)}</span>
+            <span className="font-medium">${donations?.amount.toFixed(2)}</span>
           </p>
           <p className="flex justify-between">
             <span className="text-gray-600">Transaction ID:</span>
-            <span className="font-mono text-sm">{donation?.transactionId}</span>
+            <span className="font-mono text-sm">{donations?.transactionId}</span>
           </p>
           <p className="flex justify-between">
             <span className="text-gray-600">Date:</span>
-            <span>{new Date(donation?.createdAt).toLocaleDateString()}</span>
+            <span>{new Date(donations?.createdAt).toLocaleDateString()}</span>
           </p>
         </div>
       </div>
@@ -42,15 +42,15 @@ const DonationSuccess = ({ donation }) => {
         </p>
         <div className="bg-white p-3 rounded border border-blue-200">
           <p className="font-mono text-xs break-all">
-            Transaction Hash: {donation?.BlockchainVerification?.transactionHash || 'Processing...'}
+            Transaction Hash: {donations?.BlockchainVerification?.transactionHash || 'Processing...'}
           </p>
         </div>
       </div>
       
-      {donation?.receiptUrl && (
+      {donations?.receiptUrl && (
         <div className="mb-6">
           <a 
-            href={donation.receiptUrl} 
+            href={donations.receiptUrl} 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-block bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md"
@@ -62,7 +62,7 @@ const DonationSuccess = ({ donation }) => {
       
       <div className="space-y-4">
         <Link 
-          to={`/charity/${donation?.charityId}`}
+          to={`/charities/${donations?.charityId}`}
           className="block w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md"
         >
           View Charity Page

@@ -1,3 +1,4 @@
+// src/redux/services/donationService.js
 import axios from '../../utils/axiosConfig';
 
 const donationService = {
@@ -10,6 +11,12 @@ const donationService = {
   // Confirm a successful payment
   confirmPayment: async (paymentData) => {
     const response = await axios.post('/donations/confirm-payment', paymentData);
+    return response.data;
+  },
+  
+  // Get blockchain verification status for a donation
+  getBlockchainVerification: async (donationId) => {
+    const response = await axios.get(`/donations/${donationId}/blockchain-verification`);
     return response.data;
   },
   

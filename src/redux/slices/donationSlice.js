@@ -1,3 +1,4 @@
+// src/redux/slices/donationSlice.js
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import donationService from '../services/donationService';
 
@@ -6,8 +7,11 @@ export const createPaymentIntent = createAsyncThunk(
   'donation/createPaymentIntent',
   async (donationData, thunkAPI) => {
     try {
-      return await donationService.createPaymentIntent(donationData);
+      const response = await donationService.createPaymentIntent(donationData);
+      console.log('Payment intent created:', response); // Debug log
+      return response;
     } catch (error) {
+      console.error('Error creating payment intent:', error); // Debug log
       const message = 
         error.response?.data?.error ||
         error.response?.data?.message ||
@@ -30,6 +34,23 @@ export const confirmPayment = createAsyncThunk(
         error.response?.data?.message ||
         error.message ||
         'Failed to confirm payment';
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Get blockchain verification
+export const getBlockchainVerification = createAsyncThunk(
+  'donation/getBlockchainVerification',
+  async (donationId, thunkAPI) => {
+    try {
+      return await donationService.getBlockchainVerification(donationId);
+    } catch (error) {
+      const message = 
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to get blockchain verification';
       return thunkAPI.rejectWithValue(message);
     }
   }
@@ -93,6 +114,8 @@ const initialState = {
   selectedDonation: null,
   clientSecret: null,
   donationId: null,
+  paymentIntentId: null,
+  blockchainVerification: null,
   charityStats: null,
   isLoading: false,
   isSuccess: false,
@@ -115,6 +138,10 @@ const donationSlice = createSlice({
       state.currentDonation = null;
       state.clientSecret = null;
       state.donationId = null;
+      state.paymentIntentId = null;
+      state.isSuccess = false;
+      state.isError = false;
+      state.message = '';
     },
   },
   extraReducers: (builder) => {
@@ -124,13 +151,16 @@ const donationSlice = createSlice({
         state.isLoading = true;
         state.isSuccess = false;
         state.isError = false;
+        state.message = '';
       })
       .addCase(createPaymentIntent.fulfilled, (state, action) => {
+        console.log('Payment intent response:', action.payload);
         state.isLoading = false;
         state.isSuccess = true;
         state.isError = false;
         state.clientSecret = action.payload.clientSecret;
         state.donationId = action.payload.donationId;
+        state.paymentIntentId = action.payload.paymentIntentId;
       })
       .addCase(createPaymentIntent.rejected, (state, action) => {
         state.isLoading = false;
@@ -156,6 +186,19 @@ const donationSlice = createSlice({
         state.isLoading = false;
         state.isSuccess = false; 
         state.isError = true;
+        state.message = action.payload;
+      })
+      
+      // Get blockchain verification cases
+      .addCase(getBlockchainVerification.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(getBlockchainVerification.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.blockchainVerification = action.payload;
+      })
+      .addCase(getBlockchainVerification.rejected, (state, action) => {
+        state.isLoading = false;
         state.message = action.payload;
       })
       

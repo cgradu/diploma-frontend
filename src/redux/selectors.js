@@ -18,15 +18,18 @@ export const selectProjectsError = state => state.projects.isError;
 export const selectSelectedProject = state => state.projects.selectedProject;
 
 // Donation selectors
-export const selectDonationState = state => state.donation;
+export const selectDonationState = state => state.donations;
 
-export const selectDonationClientSecret = state => state.donation?.clientSecret;
-export const selectDonationId = state => state.donation?.donationId;
-export const selectCurrentDonation = state => state.donation?.currentDonation;
-export const selectDonationLoading = state => state.donation?.isLoading;
-export const selectDonationSuccess = state => state.donation?.isSuccess;
-export const selectDonationError = state => state.donation?.isError;
-export const selectDonationMessage = state => state.donation?.message;
+// In your selectors file
+export const selectDonationClientSecret = state => state.donations?.clientSecret;
+export const selectDonationId = state => state.donations?.donationId;
+export const selectDonationPaymentIntentId = state => state.donations?.paymentIntentId;
+export const selectCurrentDonation = state => state.donations?.currentDonation;
+export const selectDonationLoading = state => state.donations?.isLoading;
+export const selectDonationSuccess = state => state.donations?.isSuccess;
+export const selectDonationError = state => state.donations?.isError;
+export const selectDonationMessage = state => state.donations?.message;
+export const selectBlockchainVerificationData = state => state.donations?.blockchainVerification;
 
 // Memoized selectors
 export const selectDonationStatus = createSelector(
