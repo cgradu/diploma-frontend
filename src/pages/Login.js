@@ -1,36 +1,227 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Box,
+  Container,
+  Paper,
+  Typography,
+  Button,
+  Stack,
+  Divider,
+  Chip,
+  useTheme,
+  alpha
+} from '@mui/material';
+import {
+  VolunteerActivism,
+  Security,
+  Verified,
+  ArrowBack,
+  LoginOutlined
+} from '@mui/icons-material';
 import LoginForm from '../components/auth/LoginForm';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 
 const Login = () => {
+  const theme = useTheme();
+
+  const trustFeatures = [
+    {
+      icon: <Security sx={{ fontSize: 20 }} />,
+      text: "Blockchain Secured",
+      color: theme.palette.success.main
+    },
+    {
+      icon: <Verified sx={{ fontSize: 20 }} />,
+      text: "Verified Impact",
+      color: theme.palette.primary.main
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
       
-      <div className="flex-grow flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <h1 className="text-center text-3xl font-extrabold text-gray-900">
-            Charity Transparency Platform
-          </h1>
-          <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
-            Sign in to your account
-          </h2>
-        </div>
+      <Container 
+        component="main" 
+        maxWidth="sm"
+        sx={{ 
+          flexGrow: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          py: 8
+        }}
+      >
+        {/* Header Section */}
+        <Box sx={{ textAlign: 'center', mb: 6 }}>
+          {/* Brand Logo */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
+            <VolunteerActivism 
+              sx={{ 
+                fontSize: 48, 
+                color: theme.palette.primary.main,
+                mr: 1
+              }} 
+            />
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 'bold',
+                color: theme.palette.primary.main,
+                letterSpacing: '-0.5px'
+              }}
+            >
+              Charitrace
+            </Typography>
+          </Box>
 
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+          {/* Trust Badges */}
+          <Stack 
+            direction="row" 
+            spacing={2} 
+            justifyContent="center" 
+            sx={{ mb: 4 }}
+          >
+            {trustFeatures.map((feature, index) => (
+              <Chip
+                key={index}
+                icon={feature.icon}
+                label={feature.text}
+                size="small"
+                sx={{
+                  bgcolor: alpha(feature.color, 0.1),
+                  color: feature.color,
+                  border: `1px solid ${alpha(feature.color, 0.2)}`,
+                  fontWeight: 'medium'
+                }}
+              />
+            ))}
+          </Stack>
+
+          {/* Page Title */}
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: 'bold',
+              color: theme.palette.text.primary,
+              mb: 2
+            }}
+          >
+            Welcome Back
+          </Typography>
+          <Typography
+            variant="h6"
+            color="text.secondary"
+            sx={{ maxWidth: '400px', mx: 'auto', lineHeight: 1.5 }}
+          >
+            Sign in to continue your transparent giving journey
+          </Typography>
+        </Box>
+
+        {/* Login Form Container */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            borderRadius: 3,
+            border: `1px solid ${theme.palette.divider}`,
+            bgcolor: 'background.paper',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+          }}
+        >
+          {/* Form Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <LoginOutlined sx={{ color: theme.palette.primary.main, mr: 1 }} />
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}
+            >
+              Sign In
+            </Typography>
+          </Box>
+
+          {/* Login Form Component */}
           <LoginForm />
-          <div className="text-center mt-4">
-            <Link to="/" className="text-blue-500 hover:text-blue-700">
-              ← Back to Home
-            </Link>
-          </div>
-        </div>
-      </div>
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* Additional Actions */}
+          <Stack spacing={2}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: 'center' }}
+            >
+              Don't have an account?{' '}
+              <Button
+                component={Link}
+                to="/register"
+                variant="text"
+                sx={{
+                  fontWeight: 'bold',
+                  textTransform: 'none',
+                  p: 0,
+                  minWidth: 'auto',
+                  '&:hover': {
+                    backgroundColor: 'transparent',
+                    textDecoration: 'underline'
+                  }
+                }}
+              >
+                Sign up here
+              </Button>
+            </Typography>
+            
+            <Button
+              component={Link}
+              to="/"
+              variant="outlined"
+              startIcon={<ArrowBack />}
+              fullWidth
+              sx={{
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 'medium',
+                borderColor: theme.palette.divider,
+                color: theme.palette.text.secondary,
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
+                  bgcolor: alpha(theme.palette.primary.main, 0.04)
+                }
+              }}
+            >
+              Back to Home
+            </Button>
+          </Stack>
+        </Paper>
+
+        {/* Bottom Info */}
+        <Box
+          sx={{
+            mt: 4,
+            p: 3,
+            textAlign: 'center',
+            bgcolor: alpha(theme.palette.primary.main, 0.02),
+            borderRadius: 2,
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            ✨ Join thousands of donors creating transparent impact
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Every donation is tracked on the blockchain for complete transparency
+          </Typography>
+        </Box>
+      </Container>
       
       <Footer />
-    </div>
+    </Box>
   );
 };
 

@@ -1,6 +1,6 @@
 // frontend/src/pages/ProjectDetailPage.js
 import React from 'react';
-import { Container, Box, Typography } from '@mui/material';
+import { Container, Box } from '@mui/material';
 import ProjectDetail from '../components/projects/ProjectDetail';
 
 const ProjectDetailPage = () => {

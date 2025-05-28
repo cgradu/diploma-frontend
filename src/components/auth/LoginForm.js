@@ -1,7 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { login, reset } from '../../redux/slices/authSlice';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  Stack,
+  InputAdornment,
+  IconButton,
+  FormControlLabel,
+  Checkbox,
+  CircularProgress,
+  Divider,
+  useTheme,
+  alpha
+} from '@mui/material';
+import {
+  Email,
+  Lock,
+  Visibility,
+  VisibilityOff,
+  LoginOutlined
+} from '@mui/icons-material';
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -10,8 +33,11 @@ const LoginForm = () => {
   });
   
   const [formErrors, setFormErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   
   const { email, password } = formData;
+  const theme = useTheme();
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -22,7 +48,6 @@ const LoginForm = () => {
   
   useEffect(() => {
     if (isError) {
-      // Display error message
       console.error(message);
     }
     
@@ -40,11 +65,13 @@ const LoginForm = () => {
     if (!email.trim()) {
       errors.email = 'Email is required';
     } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-      errors.email = 'Email is invalid';
+      errors.email = 'Please enter a valid email address';
     }
     
     if (!password) {
       errors.password = 'Password is required';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
     }
     
     setFormErrors(errors);
@@ -52,7 +79,13 @@ const LoginForm = () => {
   };
   
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Clear error when user starts typing
+    if (formErrors[name]) {
+      setFormErrors({ ...formErrors, [name]: '' });
+    }
   };
   
   const handleSubmit = (e) => {
@@ -63,65 +96,245 @@ const LoginForm = () => {
     }
   };
   
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
-    <div className="w-full max-w-md mx-auto">
-      <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-        <h2 className="text-2xl font-bold mb-6 text-center">Login to Your Account</h2>
-        
-        {isError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{message}</div>}
-        
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
-            Email
-          </label>
-          <input
-            className={`shadow appearance-none border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
-            id="email"
-            type="email"
-            name="email"
-            value={email}
-            onChange={handleChange}
-            placeholder="Enter your email"
+    <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
+      {/* Error Alert */}
+      {isError && (
+        <Alert 
+          severity="error" 
+          sx={{ 
+            mb: 3,
+            borderRadius: 2,
+            '& .MuiAlert-icon': {
+              alignItems: 'center'
+            }
+          }}
+        >
+          {message || 'Login failed. Please check your credentials and try again.'}
+        </Alert>
+      )}
+      
+      <Stack spacing={3}>
+        {/* Email Field */}
+        <TextField
+          fullWidth
+          id="email"
+          name="email"
+          label="Email Address"
+          type="email"
+          value={email}
+          onChange={handleChange}
+          error={!!formErrors.email}
+          helperText={formErrors.email}
+          disabled={isLoading}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Email sx={{ color: theme.palette.action.active }} />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              '&:hover fieldset': {
+                borderColor: theme.palette.primary.main,
+              },
+              '&.Mui-focused fieldset': {
+                borderWidth: 2,
+              }
+            }
+          }}
+          placeholder="Enter your email address"
+          autoComplete="email"
+          autoFocus
+        />
+
+        {/* Password Field */}
+        <TextField
+          fullWidth
+          id="password"
+          name="password"
+          label="Password"
+          type={showPassword ? 'text' : 'password'}
+          value={password}
+          onChange={handleChange}
+          error={!!formErrors.password}
+          helperText={formErrors.password}
+          disabled={isLoading}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Lock sx={{ color: theme.palette.action.active }} />
+              </InputAdornment>
+            ),
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="toggle password visibility"
+                  onClick={togglePasswordVisibility}
+                  edge="end"
+                  disabled={isLoading}
+                  size="small"
+                >
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              '&:hover fieldset': {
+                borderColor: theme.palette.primary.main,
+              },
+              '&.Mui-focused fieldset': {
+                borderWidth: 2,
+              }
+            }
+          }}
+          placeholder="Enter your password"
+          autoComplete="current-password"
+        />
+
+        {/* Remember Me & Forgot Password */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                size="small"
+                disabled={isLoading}
+                sx={{
+                  '&.Mui-checked': {
+                    color: theme.palette.primary.main,
+                  }
+                }}
+              />
+            }
+            label={
+              <Typography variant="body2" color="text.secondary">
+                Remember me
+              </Typography>
+            }
           />
-          {formErrors.email && <p className="text-red-500 text-xs italic">{formErrors.email}</p>}
-        </div>
-        
-        <div className="mb-6">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="password">
-            Password
-          </label>
-          <input
-            className={`shadow appearance-none border ${formErrors.password ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
-            id="password"
-            type="password"
-            name="password"
-            value={password}
-            onChange={handleChange}
-            placeholder="Enter your password"
-          />
-          {formErrors.password && <p className="text-red-500 text-xs italic">{formErrors.password}</p>}
-        </div>
-        
-        <div className="flex items-center justify-center">
-          <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
-            type="submit"
+          <Button
+            component={Link}
+            to="/forgot-password"
+            variant="text"
+            size="small"
             disabled={isLoading}
+            sx={{
+              textTransform: 'none',
+              color: theme.palette.primary.main,
+              '&:hover': {
+                backgroundColor: 'transparent',
+                textDecoration: 'underline'
+              }
+            }}
           >
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-        </div>
-        
-        <div className="text-center mt-4">
-          <p className="text-gray-600 text-sm">
-            Don't have an account?{' '}
-            <a href="/register" className="text-blue-500 hover:text-blue-700">
-              Register
-            </a>
-          </p>
-        </div>
-      </form>
-    </div>
+            Forgot password?
+          </Button>
+        </Box>
+
+        {/* Login Button */}
+        <Button
+          type="submit"
+          fullWidth
+          variant="contained"
+          size="large"
+          disabled={isLoading}
+          startIcon={
+            isLoading ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              <LoginOutlined />
+            )
+          }
+          sx={{
+            mt: 2,
+            py: 1.5,
+            borderRadius: 2,
+            fontWeight: 'bold',
+            fontSize: '1rem',
+            textTransform: 'none',
+            boxShadow: theme.shadows[2],
+            '&:hover': {
+              boxShadow: theme.shadows[4],
+              transform: 'translateY(-1px)'
+            },
+            '&:disabled': {
+              bgcolor: alpha(theme.palette.primary.main, 0.6),
+              color: '#ffffff'
+            },
+            transition: 'all 0.2s ease-in-out'
+          }}
+        >
+          {isLoading ? 'Signing In...' : 'Sign In'}
+        </Button>
+
+        {/* Divider */}
+        <Divider sx={{ my: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            or
+          </Typography>
+        </Divider>
+
+        {/* Sign Up Link */}
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            New to Charitrace?{' '}
+            <Button
+              component={Link}
+              to="/register"
+              variant="text"
+              disabled={isLoading}
+              sx={{
+                fontWeight: 'bold',
+                textTransform: 'none',
+                p: 0,
+                minWidth: 'auto',
+                textDecoration: 'none',
+                '&:hover': {
+                  backgroundColor: 'transparent',
+                  textDecoration: 'underline'
+                }
+              }}
+            >
+              Create an account
+            </Button>
+          </Typography>
+        </Box>
+
+        {/* Demo Credentials (for development) */}
+        {process.env.NODE_ENV === 'development' && (
+          <Box
+            sx={{
+              mt: 2,
+              p: 2,
+              bgcolor: alpha(theme.palette.info.main, 0.05),
+              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
+              borderRadius: 2
+            }}
+          >
+            <Typography variant="caption" color="info.main" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+              Demo Credentials:
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              Email: donor@example.com | Password: donor123
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              Email: charity1@example.org | Password: charity123
+            </Typography>
+          </Box>
+        )}
+      </Stack>
+    </Box>
   );
 };
 
