@@ -203,26 +203,6 @@ const LoginForm = () => {
 
         {/* Remember Me & Forgot Password */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                size="small"
-                disabled={isLoading}
-                sx={{
-                  '&.Mui-checked': {
-                    color: theme.palette.primary.main,
-                  }
-                }}
-              />
-            }
-            label={
-              <Typography variant="body2" color="text.secondary">
-                Remember me
-              </Typography>
-            }
-          />
           <Button
             component={Link}
             to="/forgot-password"
@@ -310,29 +290,6 @@ const LoginForm = () => {
             </Button>
           </Typography>
         </Box>
-
-        {/* Demo Credentials (for development) */}
-        {process.env.NODE_ENV === 'development' && (
-          <Box
-            sx={{
-              mt: 2,
-              p: 2,
-              bgcolor: alpha(theme.palette.info.main, 0.05),
-              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
-              borderRadius: 2
-            }}
-          >
-            <Typography variant="caption" color="info.main" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
-              Demo Credentials:
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              Email: donor@example.com | Password: donor123
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              Email: charity1@example.org | Password: charity123
-            </Typography>
-          </Box>
-        )}
       </Stack>
     </Box>
   );

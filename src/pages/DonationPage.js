@@ -4,16 +4,45 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import {
+  Box,
+  Container,
+  Paper,
+  Typography,
+  Stepper,
+  Step,
+  StepLabel,
+  Alert,
+  Fade,
+  Slide,
+  Backdrop,
+  CircularProgress,
+  Snackbar,
+  useTheme,
+  useMediaQuery,
+  Grow,
+  Chip,
+  Stack
+} from '@mui/material';
+import {
+  Favorite as FavoriteIcon,
+  Payment as PaymentIcon,
+  CheckCircle as CheckCircleIcon,
+  Security as SecurityIcon,
+  Visibility as VisibilityIcon
+} from '@mui/icons-material';
+
+// Import your  components
 import DonationForm from '../components/donation/DonationForm';
 import PaymentForm from '../components/donation/PaymentForm';
 import DonationSuccess from '../components/donation/DonationSuccess';
-import Spinner from '../components/common/Spinner';
+import Navbar from '../components/layout/Navbar';
+
 import { 
   createPaymentIntent, 
   resetDonationState, 
   clearCurrentDonation 
 } from '../redux/slices/donationSlice';
-import Navbar from '../components/layout/Navbar';
 import { getCharities } from '../redux/slices/charitySlice';
 import { getProjectsByCharityId } from '../redux/slices/projectSlice';
 import { 
@@ -22,55 +51,47 @@ import {
   selectCharitiesLoading,
   selectDonationClientSecret,
   selectDonationId,
-  selectDonationPaymentIntentId,
-  selectDonationState,
   selectCurrentDonation,
   selectDonationLoading,
-  selectDonationSuccess,
   selectDonationError,
   selectDonationMessage
 } from '../redux/selectors';
 
-// Initialize Stripe with your publishable key
+// Initialize Stripe
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_51RByuLJIJuqGirfSmV1VElWUW47yHuFQi9qMSihJoNe96YBnnHuguOi12NHrpiY5T2TUimELhyTLpHwGMpvNmEy300LVAjEPuB');
 
-// Debug component to display state information
-const DebugInfo = ({ state }) => {
-  if (process.env.NODE_ENV === 'production') return null;
-  
-  return (
-    <div className="mt-4 p-2 border border-gray-300 bg-gray-50 rounded text-xs">
-      <details>
-        <summary className="cursor-pointer font-medium">Debug Info</summary>
-        <pre className="mt-2 overflow-auto max-h-40">
-          {JSON.stringify({
-            step: state.step,
-            clientSecret: state.clientSecret ? `${state.clientSecret.substring(0, 10)}...` : null,
-            donationId: state.donationId,
-            paymentIntentId: state.paymentIntentId,
-            isLoading: state.isLoading,
-            isSuccess: state.isSuccess, 
-            isError: state.isError,
-            message: state.message
-          }, null, 2)}
-        </pre>
-      </details>
-    </div>
-  );
-};
+const steps = [
+  {
+    label: 'Donation Details',
+    icon: <FavoriteIcon />,
+    description: 'Choose charity and amount'
+  },
+  {
+    label: 'Payment',
+    icon: <PaymentIcon />,
+    description: 'Secure card payment'
+  },
+  {
+    label: 'Confirmation',
+    icon: <CheckCircleIcon />,
+    description: 'Blockchain verification'
+  }
+];
 
 const DonationPage = () => {
   const { charityId, projectId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
-  // Get URL parameters
+  // URL parameters
   const urlParams = new URLSearchParams(location.search);
   const charityIdParam = charityId || urlParams.get('charityId');
   const projectIdParam = projectId || urlParams.get('projectId');
   
-  const [step, setStep] = useState(1);
+  const [activeStep, setActiveStep] = useState(0);
   const [donationData, setDonationData] = useState({
     amount: 25,
     charityId: charityIdParam || '',
@@ -80,123 +101,132 @@ const DonationPage = () => {
     currency: 'RON'
   });
   
-  // Use memoized selectors
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
+
+  // Redux selectors
   const user = useSelector(selectUser);
   const charities = useSelector(selectCharities);
   const charitiesLoading = useSelector(selectCharitiesLoading);
-  const stateDonation = useSelector(selectDonationState);
-  
-  // Donation state with selectors
   const clientSecret = useSelector(selectDonationClientSecret);
   const donationId = useSelector(selectDonationId);
-  const paymentIntentId = useSelector(selectDonationPaymentIntentId);
   const currentDonation = useSelector(selectCurrentDonation);
   const isLoading = useSelector(selectDonationLoading);
-  const isSuccess = useSelector(selectDonationSuccess);
   const isError = useSelector(selectDonationError);
   const message = useSelector(selectDonationMessage);
 
-  // Redirect to login if not authenticated
+  // Authentication check
   useEffect(() => {
     if (!user) {
       navigate('/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search));
     }
   }, [user, navigate]);
 
+  // Initial data fetch
   useEffect(() => {
-    // Fetch charities if not already fetched
     if (!charities.length && !charitiesLoading) {
       dispatch(getCharities());
     }
 
-    // If charityId is provided, fetch its projects
     if (charityIdParam) {
       dispatch(getProjectsByCharityId(charityIdParam));
     }
     
-    // Clear donation state when component unmounts
     return () => {
       dispatch(clearCurrentDonation());
     };
   }, [dispatch, charities.length, charitiesLoading, charityIdParam]);
   
-  // Watch for changes in clientSecret and manage step transitions
+  // Step management
   useEffect(() => {
-    console.log("Donation state updated:", stateDonation)
-    console.log("Checking for client secret:", { 
-      clientSecret: clientSecret ? `${clientSecret.substring(0, 10)}...` : null,
-      isSuccess, 
-      step 
-    });
-    
-    if (clientSecret && step === 1) {
-      console.log("Moving to payment step with client secret");
-      setStep(2);
-      // Reset only flags but keep client secret and IDs
+    if (clientSecret && activeStep === 0) {
+      setActiveStep(1);
       dispatch(resetDonationState());
     }
-  }, [stateDonation, clientSecret, step, dispatch, isSuccess]);
+  }, [clientSecret, activeStep, dispatch]);
   
-  // Handle errors
+  // Error handling
   useEffect(() => {
     if (isError && message) {
-      // Show error with more user-friendly approach
-      setErrorMessage(message);
+      setSnackbar({
+        open: true,
+        message: message,
+        severity: 'error'
+      });
       dispatch(resetDonationState());
     }
   }, [isError, message, dispatch]);
   
-  // Error messaging
-  const [errorMessage, setErrorMessage] = useState(null);
-  
-  // Handle form completion
+  // Handle donation form completion
   const handleDonationFormComplete = (formData) => {
-    console.log("Donation form completed with data:", formData);
-    setErrorMessage(null);
     const data = {
       ...donationData,
       ...formData
     };
     setDonationData(data);
     
-    // Dispatch the action and handle the response
     dispatch(createPaymentIntent(data))
       .unwrap()
       .then(result => {
-        console.log("Payment intent created successfully:", result);
         if (result.clientSecret) {
-          console.log("Client secret received:", result.clientSecret.substring(0, 10) + "...");
-          // No need to setStep here as the useEffect will handle it
+          setSnackbar({
+            open: true,
+            message: 'Payment initialized successfully!',
+            severity: 'success'
+          });
         } else {
-          console.error("No client secret in response!");
-          setErrorMessage("Payment initialization failed: No client secret received");
+          throw new Error('No client secret received');
         }
       })
       .catch(error => {
-        console.error("Payment intent creation failed:", error);
-        setErrorMessage(error || "Failed to initialize payment");
+        setSnackbar({
+          open: true,
+          message: error || 'Failed to initialize payment',
+          severity: 'error'
+        });
       });
   };
   
   // Handle payment success
   const handlePaymentSuccess = () => {
-    setStep(3);
+    setActiveStep(2);
+    setSnackbar({
+      open: true,
+      message: 'Payment completed successfully!',
+      severity: 'success'
+    });
   };
   
-  // Handle going back to donation form
-  const handleBackToDonationForm = () => {
-    setStep(1);
-    dispatch(resetDonationState());
+  // Handle back navigation
+  const handleBack = () => {
+    if (activeStep > 0) {
+      setActiveStep(activeStep - 1);
+      if (activeStep === 1) {
+        dispatch(resetDonationState());
+      }
+    }
   };
-  
+
+  // Handle snackbar close
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   if (!user) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center py-12">
-          <Spinner />
-          <p className="mt-2 text-gray-600">Redirecting to login...</p>
-        </div>
-      </div>
+      <Backdrop open={true} sx={{ zIndex: theme.zIndex.drawer + 1 }}>
+        <Box textAlign="center">
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+            Redirecting to login...
+          </Typography>
+        </Box>
+      </Backdrop>
     );
   }
   
@@ -206,137 +236,281 @@ const DonationPage = () => {
     appearance: {
       theme: 'stripe',
       variables: {
-        colorPrimary: '#3b82f6', // Tailwind blue-500
-        colorBackground: '#ffffff',
-        colorText: '#1f2937', // Tailwind gray-800
+        colorPrimary: theme.palette.primary.main,
+        colorBackground: theme.palette.background.paper,
+        colorText: theme.palette.text.primary,
+        borderRadius: '8px',
       }
     }
   } : {};
-  
-  console.log("Current step:", step);
-  console.log("Client secret available:", !!clientSecret);
-  
-  return (
-    <div className="bg-gray-100 min-h-screen">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
-          {/* Header */}
-          <div className="mb-6 text-center">
-            <h1 className="text-3xl font-bold text-gray-800">Make a Donation</h1>
-            {step < 3 && (
-              <div className="flex justify-center mt-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  step >= 1 ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                } mr-2`}>
-                  1
-                </div>
-                <div className="w-20 h-1 self-center bg-gray-200 mx-2"></div>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  step >= 2 ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                } mr-2`}>
-                  2
-                </div>
-                <div className="w-20 h-1 self-center bg-gray-200 mx-2"></div>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  step >= 3 ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                }`}>
-                  3
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Error Message */}
-          {errorMessage && (
-            <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-md">
-              <p className="font-medium">Error</p>
-              <p>{errorMessage}</p>
-            </div>
-          )}
 
-          {/* Loading indicator */}
-          {isLoading && (
-            <div className="flex justify-center py-8">
-              <Spinner />
-              <p className="ml-2">Processing your request...</p>
-            </div>
-          )}
-
-          {/* Step 1: Donation Form */}
-          {step === 1 && !isLoading && (
-            <DonationForm
-              initialData={donationData}
-              onComplete={handleDonationFormComplete}
-            />
-          )}
-
-          {/* Step 2: Payment Form */}
-          {step === 2 && clientSecret && (
-            <div>
+  const renderStepContent = () => {
+    switch (activeStep) {
+      case 0:
+        return (
+          <Slide direction="right" in={activeStep === 0} mountOnEnter unmountOnExit>
+            <Box>
+              <DonationForm
+                initialData={donationData}
+                onComplete={handleDonationFormComplete}
+              />
+            </Box>
+          </Slide>
+        );
+      case 1:
+        return clientSecret ? (
+          <Slide direction="left" in={activeStep === 1} mountOnEnter unmountOnExit>
+            <Box>
               <Elements stripe={stripePromise} options={stripeOptions}>
                 <PaymentForm 
                   amount={donationData.amount} 
                   currency={donationData.currency}
                   donationId={donationId}
                   onSuccess={handlePaymentSuccess}
+                  onBack={handleBack}
                 />
               </Elements>
-              
-              <div className="mt-4">
-                <button
-                  onClick={handleBackToDonationForm}
-                  className="text-blue-500 hover:text-blue-700 text-sm"
-                >
-                  ← Back to donation details
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Fallback message if client secret is not available in step 2 */}
-          {step === 2 && !clientSecret && !isLoading && (
-            <div className="text-center py-8">
-              <p className="text-red-500 mb-4">Payment session not initialized correctly.</p>
-              <button
-                onClick={handleBackToDonationForm}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md"
-              >
-                Back to donation form
-              </button>
-            </div>
-          )}
+            </Box>
+          </Slide>
+        ) : (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            Payment session not initialized. Please go back and try again.
+          </Alert>
+        );
+      case 2:
+        return (
+          <Grow in={activeStep === 2}>
+            <Box>
+              <DonationSuccess donation={currentDonation} />
+            </Box>
+          </Grow>
+        );
+      default:
+        return null;
+    }
+  };
 
-          {/* Step 3: Success */}
-          {step === 3 && (
-            <DonationSuccess donations={currentDonation} />
-          )}
-          
-          {/* Blockchain Transparency Info */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-md text-sm text-gray-600">
-            <h3 className="font-medium text-gray-800">Transparent Donation Tracking</h3>
-            <p className="mt-1">
-              Your donation will be recorded on blockchain technology to ensure complete transparency.
-              You'll be able to track exactly how your contribution is used and verify its impact.
-            </p>
-          </div>
-          
-          {/* Debug Info */}
-          {process.env.NODE_ENV !== 'production' && (
-            <DebugInfo state={{
-              step,
-              clientSecret,
-              donationId,
-              paymentIntentId,
-              isLoading,
-              isSuccess,
-              isError,
-              message
-            }} />
-          )}
-        </div>
-      </div>
-    </div>
+  return (
+    <Box sx={{ 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${theme.palette.primary.light}10 0%, ${theme.palette.secondary.light}10 100%)`,
+      pb: 4
+    }}>
+      <Navbar />
+      
+      <Container maxWidth="lg" sx={{ pt: 4 }}>
+        <Fade in timeout={800}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              borderRadius: 4,
+              overflow: 'hidden',
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${theme.palette.divider}`,
+            }}
+          >
+            {/* Header Section */}
+            <Box 
+              sx={{ 
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                color: 'white',
+                p: 4,
+                textAlign: 'center',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: -50,
+                  right: -50,
+                  width: 200,
+                  height: 200,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: -30,
+                  left: -30,
+                  width: 150,
+                  height: 150,
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                }}
+              />
+              
+              <Typography 
+                variant={isMobile ? "h4" : "h3"} 
+                fontWeight="bold" 
+                gutterBottom
+                sx={{ position: 'relative', zIndex: 1 }}
+              >
+                Make a Donation
+              </Typography>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  opacity: 0.9, 
+                  maxWidth: 600, 
+                  mx: 'auto',
+                  position: 'relative',
+                  zIndex: 1
+                }}
+              >
+                Your contribution makes a real difference in people's lives
+              </Typography>
+              
+              <Stack 
+                direction="row" 
+                spacing={2} 
+                justifyContent="center" 
+                sx={{ mt: 3, position: 'relative', zIndex: 1 }}
+              >
+                <Chip 
+                  icon={<SecurityIcon />} 
+                  label="Secure Payment" 
+                  variant="outlined"
+                  sx={{ 
+                    color: 'white', 
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    '& .MuiChip-icon': { color: 'white' }
+                  }}
+                />
+                <Chip 
+                  icon={<VisibilityIcon />} 
+                  label="Full Transparency" 
+                  variant="outlined"
+                  sx={{ 
+                    color: 'white', 
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    '& .MuiChip-icon': { color: 'white' }
+                  }}
+                />
+              </Stack>
+            </Box>
+
+            {/* Stepper */}
+            <Box sx={{ p: 4, pb: 2 }}>
+              <Stepper 
+                activeStep={activeStep} 
+                orientation={isMobile ? "vertical" : "horizontal"}
+                sx={{
+                  '& .MuiStepLabel-root': {
+                    '& .MuiStepLabel-iconContainer': {
+                      '& .MuiStepIcon-root': {
+                        fontSize: '2rem',
+                        '&.Mui-active': {
+                          color: theme.palette.primary.main,
+                        },
+                        '&.Mui-completed': {
+                          color: theme.palette.success.main,
+                        }
+                      }
+                    }
+                  }
+                }}
+              >
+                {steps.map((step, index) => (
+                  <Step key={step.label}>
+                    <StepLabel 
+                      icon={activeStep > index ? <CheckCircleIcon /> : step.icon}
+                      optional={
+                        <Typography variant="caption" color="text.secondary">
+                          {step.description}
+                        </Typography>
+                      }
+                    >
+                      <Typography variant="subtitle1" fontWeight="medium">
+                        {step.label}
+                      </Typography>
+                    </StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+            </Box>
+
+            {/* Loading Overlay */}
+            {isLoading && (
+              <Box 
+                sx={{ 
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(255, 255, 255, 0.8)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 10
+                }}
+              >
+                <CircularProgress size={60} />
+                <Typography variant="h6" sx={{ mt: 2 }}>
+                  Processing your request...
+                </Typography>
+              </Box>
+            )}
+
+            {/* Step Content */}
+            <Box sx={{ p: 4, minHeight: 400, position: 'relative' }}>
+              {renderStepContent()}
+            </Box>
+
+            {/* Blockchain Info Footer */}
+            <Box 
+              sx={{ 
+                background: theme.palette.grey[50],
+                p: 3,
+                borderTop: `1px solid ${theme.palette.divider}`
+              }}
+            >
+              <Alert 
+                severity="info" 
+                icon={<SecurityIcon />}
+                sx={{
+                  background: 'transparent',
+                  border: 'none',
+                  '& .MuiAlert-message': {
+                    width: '100%'
+                  }
+                }}
+              >
+                <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                  🔗 Blockchain Transparency Guarantee
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Your donation will be recorded on blockchain technology to ensure complete transparency.
+                  You'll be able to track exactly how your contribution is used and verify its impact.
+                </Typography>
+              </Alert>
+            </Box>
+          </Paper>
+        </Fade>
+      </Container>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleSnackbarClose} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

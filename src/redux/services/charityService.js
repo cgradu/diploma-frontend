@@ -126,33 +126,6 @@ const getDonationHistory = async (charityId, params = {}) => {
   }
 };
 
-// Get charity updates
-const getCharityUpdates = async (charityId, params = {}) => {
-  try {
-    const { page = 1, limit = 5 } = params;
-    
-    const queryParams = new URLSearchParams();
-    queryParams.append('page', page);
-    queryParams.append('limit', limit);
-    
-    const response = await axios.get(`/charities/${charityId}/updates?${queryParams.toString()}`);
-    return response.data.data;
-  } catch (error) {
-    console.error(`Error getting updates for charity ${charityId}:`, error);
-    throw error;
-  }
-};
-
-// Add charity update
-const addCharityUpdate = async (charityId, updateData) => {
-  try {
-    const response = await axios.post(`/charities/${charityId}/updates`, updateData);
-    return response.data.data;
-  } catch (error) {
-    console.error(`Error adding update for charity ${charityId}:`, error);
-    throw error;
-  }
-};
 
 // Verify blockchain transaction for a donation
 const verifyBlockchainTransaction = async (transactionHash) => {
@@ -222,8 +195,6 @@ const charityService = {
   createCharity,
   updateCharity,
   updateCharityDetails,
-  getCharityUpdates,
-  addCharityUpdate,
   verifyBlockchainTransaction,
   getBlockchainVerification
 };

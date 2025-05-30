@@ -4,7 +4,7 @@ import authReducer from './slices/authSlice';
 import charityReducer from './slices/charitySlice';
 import donationReducer from './slices/donationSlice';
 import projectReducer from './slices/projectSlice';
-// Import other reducers as needed
+import adminReducer from './slices/adminSlice'; // Add admin reducer
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +12,7 @@ export const store = configureStore({
     charities: charityReducer,
     donations: donationReducer,
     projects: projectReducer,
+    admin: adminReducer, // Add admin reducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

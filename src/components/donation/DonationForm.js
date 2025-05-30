@@ -1,6 +1,40 @@
 // src/components/donation/DonationForm.js
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import {
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
+  FormControlLabel,
+  Checkbox,
+  Button,
+  Chip,
+  InputAdornment,
+  Fade,
+  Grow,
+  useTheme,
+  alpha,
+  Stack,
+  Avatar,
+  Paper
+} from '@mui/material';
+import {
+  Favorite as FavoriteIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  AttachMoney as AttachMoneyIcon,
+  Business as BusinessIcon,
+  Campaign as CampaignIcon,
+  Message as MessageIcon
+} from '@mui/icons-material';
+
 import { getProjectsByCharityId } from '../../redux/slices/projectSlice';
 import { 
   selectCharities, 
@@ -8,10 +42,18 @@ import {
   selectProjectsLoading
 } from '../../redux/selectors';
 
+const currencyConfig = {
+  RON: { symbol: 'lei', flag: '🇷🇴' },
+  EUR: { symbol: '€', flag: '🇪🇺' },
+  USD: { symbol: '$', flag: '🇺🇸' }
+};
+
+const presetAmounts = [10, 25, 50, 100];
+
 const DonationForm = ({ initialData, onComplete }) => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   
-  // MOVE useState BEFORE using formData
   const [formData, setFormData] = useState({
     amount: initialData.amount || 25,
     charityId: initialData.charityId || '',
@@ -21,120 +63,106 @@ const DonationForm = ({ initialData, onComplete }) => {
     currency: initialData.currency || 'RON'
   });
 
-  // Use memoized selectors
   const charities = useSelector(selectCharities);
   const charitiesLoading = useSelector(selectCharitiesLoading);
   const projectsLoading = useSelector(selectProjectsLoading);
   
-  // Make sure to safely access the projects
   const projectsForCharity = useSelector(state => {
-    // First check if state.projects exists and has a projects array
     if (!state.projects || !Array.isArray(state.projects.projects)) {
       return [];
     }
-    
-    // Return all projects (they should be filtered by charity on the backend)
     return state.projects.projects;
   });
   
   const [customAmount, setCustomAmount] = useState(false);
   const [errors, setErrors] = useState({});
-  
-  // src/components/donation/DonationForm.js
+  const [focusedField, setFocusedField] = useState('');
 
-  // Update the useEffect hook to validate charityId before dispatching
+  // Get selected charity details
+  const selectedCharity = useMemo(() => {
+    return charities.find(charity => charity.id.toString() === formData.charityId.toString());
+  }, [charities, formData.charityId]);
+
+  // Get selected project details
+  const selectedProject = useMemo(() => {
+    return projectsForCharity.find(project => project.id.toString() === formData.projectId.toString());
+  }, [projectsForCharity, formData.projectId]);
+
   useEffect(() => {
     if (formData.charityId && formData.charityId !== 'undefined') {
-      console.log('Fetching projects for charity ID:', formData.charityId);
-      // Convert charityId to a number if it's a string
       const charityIdValue = parseInt(formData.charityId, 10);
-      
-      // Only dispatch if we have a valid ID
       if (!isNaN(charityIdValue)) {
         dispatch(getProjectsByCharityId(charityIdValue));
-      } else {
-        console.warn('Invalid charityId format:', formData.charityId);
       }
     }
   }, [formData.charityId, dispatch]);
   
-  // Update charity and project selections from URL params
-  useEffect(() => {
-    if (initialData.charityId && formData.charityId !== initialData.charityId) {
-      setFormData(prev => ({
-        ...prev,
-        charityId: initialData.charityId
-      }));
-    }
-    
-    if (initialData.projectId && formData.projectId !== initialData.projectId) {
-      setFormData(prev => ({
-        ...prev,
-        projectId: initialData.projectId
-      }));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData.charityId, initialData.projectId]);
+// Replace the problematic useEffect with these two separate ones:
 
-  useEffect(() => {
-    console.log('Initial data:', initialData);
-    console.log('Form data:', formData);
-  }, [initialData, formData]);
-  
+useEffect(() => {
+  if (initialData.charityId && formData.charityId !== initialData.charityId) {
+    setFormData(prev => ({
+      ...prev,
+      charityId: initialData.charityId
+    }));
+  }
+}, [initialData.charityId, formData.charityId]);
+
+useEffect(() => {
+  if (initialData.projectId && formData.projectId !== initialData.projectId) {
+    setFormData(prev => ({
+      ...prev,
+      projectId: initialData.projectId
+    }));
+  }
+}, [initialData.projectId, formData.projectId]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value,
-    });
+    const newValue = type === 'checkbox' ? checked : value;
     
-    // Clear any errors when a field is updated
+    setFormData(prev => ({
+      ...prev,
+      [name]: newValue,
+      ...(name === 'charityId' && value !== prev.charityId ? { projectId: '' } : {})
+    }));
+    
+    // Clear errors
     if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: null
-      });
-    }
-    
-    // If charity selection changes, reset project selection
-    if (name === 'charityId' && value !== formData.charityId) {
-      setFormData(prev => ({
+      setErrors(prev => ({
         ...prev,
-        [name]: value,
-        projectId: ''
+        [name]: null
       }));
     }
   };
   
   const handleAmountSelect = (amount) => {
-    setFormData({
-      ...formData,
-      amount,
-    });
+    setFormData(prev => ({
+      ...prev,
+      amount
+    }));
     setCustomAmount(false);
     
-    // Clear amount error if exists
     if (errors.amount) {
-      setErrors({
-        ...errors,
+      setErrors(prev => ({
+        ...prev,
         amount: null
-      });
+      }));
     }
   };
   
   const handleCustomAmountChange = (e) => {
     const value = parseFloat(e.target.value) || 0;
-    setFormData({
-      ...formData,
-      amount: value,
-    });
+    setFormData(prev => ({
+      ...prev,
+      amount: value
+    }));
     
-    // Clear amount error if value is valid
     if (value > 0 && errors.amount) {
-      setErrors({
-        ...errors,
+      setErrors(prev => ({
+        ...prev,
         amount: null
-      });
+      }));
     }
   };
   
@@ -161,188 +189,486 @@ const DonationForm = ({ initialData, onComplete }) => {
     }
   };
   
-  // Memoize the loading state
   const isLoading = useMemo(() => 
     charitiesLoading || projectsLoading, 
     [charitiesLoading, projectsLoading]
   );
-  
+
+  const formatAmount = (amount) => {
+    const config = currencyConfig[formData.currency];
+    return `${amount} ${config.symbol}`;
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Charity Selection */}
-      <div>
-        <label htmlFor="charityId" className="block text-sm font-medium text-gray-700 mb-1">
-          Select Charity
-        </label>
-        <select
-          id="charityId"
-          name="charityId"
-          value={formData.charityId}
-          onChange={handleChange}
-          className={`w-full px-3 py-2 border rounded-md ${errors.charityId ? 'border-red-500' : 'border-gray-300'}`}
-          required
-          disabled={isLoading}
-        >
-          <option value="">Select a charity</option>
-          {charities.map(charity => (
-            <option key={charity.id} value={charity.id}>
-              {charity.name}
-            </option>
-          ))}
-        </select>
-        {errors.charityId && <p className="mt-1 text-sm text-red-500">{errors.charityId}</p>}
-      </div>
-      
-      {/* Project Selection (if charity is selected) */}
-      {formData.charityId && projectsForCharity.length > 0 && (
-        <div>
-          <label htmlFor="projectId" className="block text-sm font-medium text-gray-700 mb-1">
-            Select Project (Optional)
-          </label>
-          <select
-            id="projectId"
-            name="projectId"
-            value={formData.projectId}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-            disabled={isLoading}
+    <Box component="form" onSubmit={handleSubmit}>
+      <Grid container spacing={3}>
+        {/* Charity Selection */}
+        <Grid item xs={12}>
+          <Card 
+            variant="outlined" 
+            sx={{ 
+              border: focusedField === 'charity' ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
+              transition: 'border 0.2s ease',
+              background: selectedCharity ? alpha(theme.palette.primary.main, 0.02) : 'transparent'
+            }}
           >
-            <option value="">General donation</option>
-            {projectsForCharity.map(project => (
-              <option key={project.id} value={project.id}>
-                {project.title}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-      
-      {/* Donation Amount */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Donation Amount
-        </label>
-        <div className="grid grid-cols-4 gap-2 mb-2">
-          {[10, 25, 50, 100].map(amount => (
-            <button
-              key={amount}
-              type="button"
-              className={`py-2 px-4 rounded-md ${
-                formData.amount === amount && !customAmount
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200'
-              }`}
-              onClick={() => handleAmountSelect(amount)}
-            >
-              {amount} {formData.currency}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center mt-2">
-          <input
-            type="checkbox"
-            id="customAmount"
-            checked={customAmount}
-            onChange={() => setCustomAmount(!customAmount)}
-            className="mr-2"
-          />
-          <label htmlFor="customAmount" className="text-sm text-gray-700">
-            Custom Amount
-          </label>
-        </div>
-        {customAmount && (
-          <div className="mt-2">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500">{formData.currency}</span>
-              </div>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={formData.amount}
-                onChange={handleCustomAmountChange}
-                className={`w-full pl-16 pr-3 py-2 border rounded-md ${
-                  errors.amount ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Enter amount"
-              />
-            </div>
-            {errors.amount && <p className="mt-1 text-sm text-red-500">{errors.amount}</p>}
-          </div>
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
+                  <BusinessIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Select Charity
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Choose the organization you want to support
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <FormControl 
+                fullWidth 
+                error={!!errors.charityId}
+                onFocus={() => setFocusedField('charity')}
+                onBlur={() => setFocusedField('')}
+              >
+                <InputLabel>Charity Organization</InputLabel>
+                <Select
+                  name="charityId"
+                  value={formData.charityId}
+                  onChange={handleChange}
+                  label="Charity Organization"
+                  disabled={isLoading}
+                  startAdornment={
+                    selectedCharity && (
+                      <InputAdornment position="start">
+                        <FavoriteIcon color="primary" fontSize="small" />
+                      </InputAdornment>
+                    )
+                  }
+                >
+                  <MenuItem value="">
+                    <em>Select a charity</em>
+                  </MenuItem>
+                  {charities.map(charity => (
+                    <MenuItem key={charity.id} value={charity.id}>
+                      <Box>
+                        <Typography variant="body1" fontWeight="medium">
+                          {charity.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {charity.category?.replace('_', ' ').toLowerCase()}
+                        </Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+                {errors.charityId && (
+                  <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                    {errors.charityId}
+                  </Typography>
+                )}
+              </FormControl>
+
+              {selectedCharity && (
+                <Fade in timeout={500}>
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ 
+                      p: 2, 
+                      mt: 2, 
+                      background: alpha(theme.palette.primary.main, 0.02),
+                      border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`
+                    }}
+                  >
+                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                      {selectedCharity.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" paragraph>
+                      {selectedCharity.description || selectedCharity.mission}
+                    </Typography>
+                    <Chip 
+                      label={selectedCharity.category?.replace('_', ' ')} 
+                      size="small" 
+                      color="primary" 
+                      variant="outlined"
+                    />
+                  </Paper>
+                </Fade>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Project Selection */}
+        {formData.charityId && projectsForCharity.length > 0 && (
+          <Grid item xs={12}>
+            <Grow in timeout={600}>
+              <Card variant="outlined">
+                <CardContent>
+                  <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                    <Avatar sx={{ bgcolor: theme.palette.secondary.main }}>
+                      <CampaignIcon />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" fontWeight="bold">
+                        Select Project (Optional)
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Choose a specific project or make a general donation
+                      </Typography>
+                    </Box>
+                  </Stack>
+
+                  <FormControl fullWidth>
+                    <InputLabel>Project</InputLabel>
+                    <Select
+                      name="projectId"
+                      value={formData.projectId}
+                      onChange={handleChange}
+                      label="Project"
+                      disabled={isLoading}
+                    >
+                      <MenuItem value="">
+                        <em>General donation</em>
+                      </MenuItem>
+                      {projectsForCharity.map(project => (
+                        <MenuItem key={project.id} value={project.id}>
+                          <Box>
+                            <Typography variant="body1" fontWeight="medium">
+                              {project.title}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Goal: {project.goal} {formData.currency} • Progress: {((project.currentAmount / project.goal) * 100).toFixed(1)}%
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+
+                  {selectedProject && (
+                    <Fade in timeout={500}>
+                      <Box sx={{ mt: 2 }}>
+                        <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                          {selectedProject.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" paragraph>
+                          {selectedProject.description}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <Chip 
+                            label={`${formatAmount(selectedProject.currentAmount)} raised`}
+                            size="small" 
+                            color="success" 
+                            variant="outlined"
+                          />
+                          <Chip 
+                            label={`${formatAmount(selectedProject.goal)} goal`}
+                            size="small" 
+                            color="primary" 
+                            variant="outlined"
+                          />
+                        </Box>
+                      </Box>
+                    </Fade>
+                  )}
+                </CardContent>
+              </Card>
+            </Grow>
+          </Grid>
         )}
-      </div>
-      
-      {/* Currency Selection */}
-      <div>
-        <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
-          Currency
-        </label>
-        <select
-          id="currency"
-          name="currency"
-          value={formData.currency}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-        >
-          <option value="RON">Romanian Leu (RON)</option>
-          <option value="EUR">Euro (EUR)</option>
-          <option value="USD">US Dollar (USD)</option>
-        </select>
-      </div>
-      
-      {/* Message */}
-      <div>
-        <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-          Message (Optional)
-        </label>
-        <textarea
-          id="message"
-          name="message"
-          value={formData.message}
-          onChange={handleChange}
-          rows="3"
-          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-          placeholder="Add a personal message with your donation..."
-        ></textarea>
-      </div>
-      
-      {/* Anonymous Donation */}
-      <div className="flex items-center">
-        <input
-          type="checkbox"
-          id="anonymous"
-          name="anonymous"
-          checked={formData.anonymous}
-          onChange={handleChange}
-          className="mr-2"
-        />
-        <label htmlFor="anonymous" className="text-sm text-gray-700">
-          Make donation anonymous
-        </label>
-      </div>
-      
-      {/* Submit Button */}
-      <div className="mt-6">
-        <button
-          type="submit"
-          className="w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md shadow-sm transition duration-200"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Loading...
-            </span>
-          ) : (
-            'Continue to Payment'
-          )}
-        </button>
-      </div>
-    </form>
+
+        {/* Amount Selection */}
+        <Grid item xs={12}>
+          <Card variant="outlined">
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+                <Avatar sx={{ bgcolor: theme.palette.success.main }}>
+                  <AttachMoneyIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Donation Amount
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Select an amount or enter a custom value
+                  </Typography>
+                </Box>
+              </Stack>
+
+              {/* Currency Selection */}
+              <Box sx={{ mb: 3 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Currency</InputLabel>
+                  <Select
+                    name="currency"
+                    value={formData.currency}
+                    onChange={handleChange}
+                    label="Currency"
+                  >
+                    {Object.entries(currencyConfig).map(([code, config]) => (
+                      <MenuItem key={code} value={code}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <span>{config.flag}</span>
+                          <span>{code}</span>
+                          <Typography variant="caption" color="text.secondary">
+                            ({config.symbol})
+                          </Typography>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Preset Amounts */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" fontWeight="medium" gutterBottom>
+                  Quick Select
+                </Typography>
+                <Grid container spacing={1}>
+                  {presetAmounts.map(amount => (
+                    <Grid item xs={6} sm={3} key={amount}>
+                      <Button
+                        fullWidth
+                        variant={formData.amount === amount && !customAmount ? 'contained' : 'outlined'}
+                        onClick={() => handleAmountSelect(amount)}
+                        sx={{
+                          py: 1.5,
+                          fontSize: '1rem',
+                          fontWeight: 'bold',
+                          ...(formData.amount === amount && !customAmount && {
+                            background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                            '&:hover': {
+                              background: `linear-gradient(45deg, ${theme.palette.primary.dark}, ${theme.palette.primary.main})`,
+                            }
+                          })
+                        }}
+                      >
+                        {formatAmount(amount)}
+                      </Button>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+
+              {/* Custom Amount Toggle */}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={customAmount}
+                    onChange={() => setCustomAmount(!customAmount)}
+                    sx={{
+                      '&.Mui-checked': {
+                        color: theme.palette.primary.main,
+                      }
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" fontWeight="medium">
+                    Enter custom amount
+                  </Typography>
+                }
+                sx={{ mb: customAmount ? 2 : 0 }}
+              />
+
+              {/* Custom Amount Input */}
+              {customAmount && (
+                <Grow in timeout={400}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Custom Amount"
+                    value={formData.amount}
+                    onChange={handleCustomAmountChange}
+                    error={!!errors.amount}
+                    helperText={errors.amount}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          {currencyConfig[formData.currency].symbol}
+                        </InputAdornment>
+                      ),
+                      inputProps: { min: 1, step: 1 }
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&.Mui-focused fieldset': {
+                          borderColor: theme.palette.primary.main,
+                          borderWidth: 2,
+                        }
+                      }
+                    }}
+                  />
+                </Grow>
+              )}
+
+              {/* Amount Summary */}
+              {formData.amount > 0 && (
+                <Fade in timeout={500}>
+                  <Paper 
+                    variant="outlined" 
+                    sx={{ 
+                      p: 2, 
+                      mt: 2, 
+                      background: alpha(theme.palette.success.main, 0.05),
+                      border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`
+                    }}
+                  >
+                    <Typography variant="h5" fontWeight="bold" color="success.main" textAlign="center">
+                      {formatAmount(formData.amount)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" textAlign="center">
+                      Your generous contribution
+                    </Typography>
+                  </Paper>
+                </Fade>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Message */}
+        <Grid item xs={12}>
+          <Card variant="outlined">
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                <Avatar sx={{ bgcolor: theme.palette.info.main }}>
+                  <MessageIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Personal Message
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Add an optional message with your donation
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                name="message"
+                label="Your message"
+                value={formData.message}
+                onChange={handleChange}
+                placeholder="Share why this cause matters to you..."
+                variant="outlined"
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': {
+                      borderColor: theme.palette.primary.main,
+                      borderWidth: 2,
+                    }
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Privacy Options */}
+        <Grid item xs={12}>
+          <Card variant="outlined">
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                <Avatar sx={{ bgcolor: theme.palette.warning.main }}>
+                  {formData.anonymous ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Privacy Settings
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Choose how your donation appears
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="anonymous"
+                    checked={formData.anonymous}
+                    onChange={handleChange}
+                    sx={{
+                      '&.Mui-checked': {
+                        color: theme.palette.warning.main,
+                      }
+                    }}
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography variant="body1" fontWeight="medium">
+                      Make this donation anonymous
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Your name will not be displayed publicly with this donation
+                    </Typography>
+                  </Box>
+                }
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Submit Button */}
+        <Grid item xs={12}>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            size="large"
+            disabled={isLoading}
+            sx={{
+              py: 2,
+              fontSize: '1.1rem',
+              fontWeight: 'bold',
+              background: `linear-gradient(45deg, ${theme.palette.primary.main} 30%, ${theme.palette.primary.dark} 90%)`,
+              boxShadow: theme.shadows[4],
+              '&:hover': {
+                background: `linear-gradient(45deg, ${theme.palette.primary.dark} 30%, ${theme.palette.primary.main} 90%)`,
+                boxShadow: theme.shadows[8],
+                transform: 'translateY(-2px)',
+              },
+              '&:disabled': {
+                background: theme.palette.grey[300],
+              },
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+            startIcon={!isLoading && <FavoriteIcon />}
+          >
+            {isLoading ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    border: '2px solid',
+                    borderColor: `${theme.palette.primary.main} transparent ${theme.palette.primary.main} transparent`,
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }}
+                />
+                Loading...
+              </Box>
+            ) : (
+              'Continue to Payment'
+            )}
+          </Button>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 

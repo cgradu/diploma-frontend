@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Box,
@@ -14,7 +14,8 @@ import {
   Paper,
   useTheme,
   alpha,
-  Divider
+  Divider,
+  CircularProgress
 } from '@mui/material';
 import {
   Visibility,
@@ -33,6 +34,56 @@ import Footer from '../components/layout/Footer';
 
 const Home = () => {
   const theme = useTheme();
+  const [stats, setStats] = useState({
+    totalCharities: 0,
+    totalDonated: 0,
+    totalDonors: 0,
+    successRate: 0,
+    loading: true
+  });
+  const [latestDonation, setLatestDonation] = useState(null);
+
+  // Fetch platform statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/stats/platform');
+        const data = await response.json();
+        
+        setStats({
+          totalCharities: data.totalCharities || 0,
+          totalDonated: data.totalDonated || 0,
+          totalDonors: data.totalDonors || 0,
+          successRate: data.successRate || 0,
+          loading: false
+        });
+      } catch (error) {
+        console.error('Error fetching platform stats:', error);
+        setStats(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Fetch latest donation for real-time display
+  useEffect(() => {
+    const fetchLatestDonation = async () => {
+      try {
+        const response = await fetch('/api/donations/latest');
+        const data = await response.json();
+        setLatestDonation(data);
+      } catch (error) {
+        console.error('Error fetching latest donation:', error);
+      }
+    };
+
+    fetchLatestDonation();
+    
+    // Optional: Set up real-time updates
+    const interval = setInterval(fetchLatestDonation, 30000); // Update every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const features = [
     {
@@ -55,11 +106,43 @@ const Home = () => {
     }
   ];
 
-  const stats = [
-    { label: "Verified Charities", value: "250+", icon: <AccountBalance /> },
-    { label: "Total Donated", value: "$2.4M", icon: <TrendingUp /> },
-    { label: "Active Donors", value: "12K+", icon: <Groups /> },
-    { label: "Success Rate", value: "99.8%", icon: <Security /> }
+  const formatCurrency = (amount) => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    }
+    return `$${amount}`;
+  };
+
+  const formatNumber = (num) => {
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K+`;
+    }
+    return `${num}+`;
+  };
+
+  const platformStats = [
+    { 
+      label: "Verified Charities", 
+      value: stats.loading ? '...' : formatNumber(stats.totalCharities), 
+      icon: <AccountBalance /> 
+    },
+    { 
+      label: "Total Donated", 
+      value: stats.loading ? '...' : formatCurrency(stats.totalDonated), 
+      icon: <TrendingUp /> 
+    },
+    { 
+      label: "Active Donors", 
+      value: stats.loading ? '...' : formatNumber(stats.totalDonors), 
+      icon: <Groups /> 
+    },
+    { 
+      label: "Success Rate", 
+      value: stats.loading ? '...' : `${stats.successRate}%`, 
+      icon: <Security /> 
+    }
   ];
 
   return (
@@ -178,10 +261,10 @@ const Home = () => {
 
                 {/* Trust Indicators */}
                 <Stack direction="row" spacing={4} sx={{ pt: 2 }}>
-                  {stats.slice(0, 2).map((stat, index) => (
+                  {platformStats.slice(0, 2).map((stat, index) => (
                     <Box key={index} sx={{ textAlign: 'center' }}>
                       <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, color: theme.palette.primary.main }}>
-                        {stat.value}
+                        {stats.loading ? <CircularProgress size={20} /> : stat.value}
                       </Typography>
                       <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                         {stat.label}
@@ -233,12 +316,26 @@ const Home = () => {
                       <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
                         Latest Donation
                       </Typography>
-                      <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-                        $50 → Clean Water Project
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                        Verified on blockchain • 2 minutes ago
-                      </Typography>
+                      {latestDonation ? (
+                        <>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
+                            {formatCurrency(latestDonation.amount)} → {latestDonation.charity?.name || latestDonation.project?.title || 'General Fund'}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                            {latestDonation.blockchainVerification ? 'Verified on blockchain' : 'Processing verification'} • {new Date(latestDonation.createdAt).toLocaleString()}
+                          </Typography>
+                        </>
+                      ) : (
+                        <>
+                          <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
+                            Connecting to live feed...
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
+                            <CircularProgress size={12} sx={{ mr: 1 }} />
+                            Loading real-time data
+                          </Typography>
+                        </>
+                      )}
                     </Box>
                   </Stack>
                 </Paper>
@@ -251,7 +348,7 @@ const Home = () => {
       {/* Stats Section */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Grid container spacing={3}>
-          {stats.map((stat, index) => (
+          {platformStats.map((stat, index) => (
             <Grid item xs={6} md={3} key={index}>
               <Paper
                 elevation={0}
@@ -280,7 +377,7 @@ const Home = () => {
                   {stat.icon}
                 </IconButton>
                 <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  {stat.value}
+                  {stats.loading ? <CircularProgress size={24} /> : stat.value}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {stat.label}

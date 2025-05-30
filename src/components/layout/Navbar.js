@@ -35,7 +35,8 @@ import {
   PersonAdd,
   Logout,
   Close,
-  VolunteerActivism
+  VolunteerActivism,
+  AdminPanelSettings
 } from '@mui/icons-material';
 
 const Navbar = () => {
@@ -69,15 +70,45 @@ const Navbar = () => {
     return location.pathname === path;
   };
 
+  // Determine dashboard path based on user role
+  const getDashboardPath = () => {
+    if (user?.role === 'admin') {
+      return '/admin';
+    }
+    return '/dashboard';
+  };
+
+  const getDashboardLabel = () => {
+    if (user?.role === 'admin') {
+      return 'Admin Dashboard';
+    }
+    return 'Dashboard';
+  };
+
+  const getDashboardIcon = () => {
+    if (user?.role === 'admin') {
+      return <AdminPanelSettings />;
+    }
+    return <Dashboard />;
+  };
+
   const navigationLinks = [
     { text: 'Home', path: '/', icon: <Home /> },
-    { text: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
+    ...(user ? [{ 
+      text: getDashboardLabel(), 
+      path: getDashboardPath(), 
+      icon: getDashboardIcon() 
+    }] : []),
     { text: 'Explore Charities', path: '/charities', icon: <Explore /> }
   ];
 
   const userMenuItems = user ? [
-    { text: 'Dashboard', path: '/dashboard', icon: <Dashboard /> },
-    { text: 'Profile', path: '/profile', icon: <Person /> },
+    { 
+      text: getDashboardLabel(), 
+      path: getDashboardPath(), 
+      icon: getDashboardIcon() 
+    },
+    ...(user.role !== 'admin' ? [{ text: 'Profile', path: '/profile', icon: <Person /> }] : []),
     { text: 'Logout', action: handleLogout, icon: <Logout /> }
   ] : [
     { text: 'Login', path: '/login', icon: <Login /> },
@@ -170,8 +201,12 @@ const Navbar = () => {
           <Box>
             <Box sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: 2, mb: 2 }}>
               <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 32, height: 32 }}>
-                  {user.name?.charAt(0).toUpperCase()}
+                <Avatar sx={{ 
+                  bgcolor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main, 
+                  width: 32, 
+                  height: 32 
+                }}>
+                  {user.role === 'admin' ? <AdminPanelSettings fontSize="small" /> : user.name?.charAt(0).toUpperCase()}
                 </Avatar>
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
@@ -180,30 +215,41 @@ const Navbar = () => {
                   <Typography variant="caption" color="text.secondary">
                     {user.email}
                   </Typography>
+                  {user.role === 'admin' && (
+                    <Chip 
+                      label="Admin" 
+                      size="small" 
+                      color="error" 
+                      sx={{ mt: 0.5, fontSize: '0.7rem', height: 18 }} 
+                    />
+                  )}
                 </Box>
               </Stack>
             </Box>
 
-            <Button
-              component={Link}
-              to="/donate"
-              fullWidth
-              variant="contained"
-              startIcon={<VolunteerActivism />}
-              onClick={toggleMobileDrawer}
-              sx={{
-                mb: 2,
-                py: 1.5,
-                borderRadius: 2,
-                fontWeight: 'bold',
-                bgcolor: theme.palette.secondary.main,
-                '&:hover': {
-                  bgcolor: theme.palette.secondary.dark
-                }
-              }}
-            >
-              Donate Now
-            </Button>
+            {/* Only show donate button for non-admin users */}
+            {user.role !== 'admin' && (
+              <Button
+                component={Link}
+                to="/donate"
+                fullWidth
+                variant="contained"
+                startIcon={<VolunteerActivism />}
+                onClick={toggleMobileDrawer}
+                sx={{
+                  mb: 2,
+                  py: 1.5,
+                  borderRadius: 2,
+                  fontWeight: 'bold',
+                  bgcolor: theme.palette.secondary.main,
+                  '&:hover': {
+                    bgcolor: theme.palette.secondary.dark
+                  }
+                }}
+              >
+                Donate Now
+              </Button>
+            )}
 
             <List sx={{ p: 0 }}>
               {userMenuItems.map((item) => (
@@ -340,55 +386,81 @@ const Navbar = () => {
 
             {/* Desktop Authentication */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
-              <Button
-                component={Link}
-                to="/donate"
-                variant="contained"
-                startIcon={<VolunteerActivism />}
-                sx={{
-                  bgcolor: theme.palette.secondary.main,
-                  color: '#ffffff',
-                  fontWeight: 'bold',
-                  px: 3,
-                  py: 1,
-                  borderRadius: 3,
-                  textTransform: 'none',
-                  boxShadow: theme.shadows[2],
-                  '&:hover': {
-                    bgcolor: theme.palette.secondary.dark,
-                    transform: 'translateY(-1px)',
-                    boxShadow: theme.shadows[4]
-                  },
-                  transition: 'all 0.2s ease-in-out'
-                }}
-              >
-                Donate Now
-              </Button>
+              {/* Only show donate button for non-admin users */}
+              {(!user || user.role !== 'admin') && (
+                <Button
+                  component={Link}
+                  to="/donate"
+                  variant="contained"
+                  startIcon={<VolunteerActivism />}
+                  sx={{
+                    bgcolor: theme.palette.secondary.main,
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    px: 3,
+                    py: 1,
+                    borderRadius: 3,
+                    textTransform: 'none',
+                    boxShadow: theme.shadows[2],
+                    '&:hover': {
+                      bgcolor: theme.palette.secondary.dark,
+                      transform: 'translateY(-1px)',
+                      boxShadow: theme.shadows[4]
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  Donate Now
+                </Button>
+              )}
 
               {user ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Chip
                     label={`Welcome, ${user.name}`}
-                    avatar={<Avatar sx={{ bgcolor: theme.palette.primary.main }}>{user.name?.charAt(0).toUpperCase()}</Avatar>}
+                    avatar={
+                      <Avatar sx={{ 
+                        bgcolor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main 
+                      }}>
+                        {user.role === 'admin' ? <AdminPanelSettings fontSize="small" /> : user.name?.charAt(0).toUpperCase()}
+                      </Avatar>
+                    }
                     sx={{
-                      bgcolor: alpha(theme.palette.primary.main, 0.1),
-                      color: theme.palette.primary.main,
+                      bgcolor: user.role === 'admin' 
+                        ? alpha(theme.palette.error.main, 0.1) 
+                        : alpha(theme.palette.primary.main, 0.1),
+                      color: user.role === 'admin' 
+                        ? theme.palette.error.main 
+                        : theme.palette.primary.main,
                       fontWeight: 'medium'
                     }}
                   />
+                  {user.role === 'admin' && (
+                    <Chip 
+                      label="Administrator" 
+                      color="error" 
+                      size="small"
+                      sx={{ fontWeight: 'bold' }}
+                    />
+                  )}
                   <Tooltip title="Account settings">
                     <IconButton
                       onClick={handleOpenUserMenu}
                       sx={{
                         p: 0,
-                        border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                        border: `2px solid ${alpha(
+                          user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main, 
+                          0.2
+                        )}`,
                         '&:hover': {
-                          borderColor: theme.palette.primary.main
+                          borderColor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main
                         }
                       }}
                     >
-                      <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-                        {user.name?.charAt(0).toUpperCase()}
+                      <Avatar sx={{ 
+                        bgcolor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main 
+                      }}>
+                        {user.role === 'admin' ? <AdminPanelSettings /> : user.name?.charAt(0).toUpperCase()}
                       </Avatar>
                     </IconButton>
                   </Tooltip>
@@ -468,25 +540,27 @@ const Navbar = () => {
 
             {/* Mobile Menu Button */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1 }}>
-              <Button
-                component={Link}
-                to="/donate"
-                variant="contained"
-                size="small"
-                sx={{
-                  bgcolor: theme.palette.secondary.main,
-                  color: '#ffffff',
-                  fontWeight: 'bold',
-                  minWidth: 'auto',
-                  px: 2,
-                  borderRadius: 2,
-                  '&:hover': {
-                    bgcolor: theme.palette.secondary.dark
-                  }
-                }}
-              >
-                Donate
-              </Button>
+              {(!user || user.role !== 'admin') && (
+                <Button
+                  component={Link}
+                  to="/donate"
+                  variant="contained"
+                  size="small"
+                  sx={{
+                    bgcolor: theme.palette.secondary.main,
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    minWidth: 'auto',
+                    px: 2,
+                    borderRadius: 2,
+                    '&:hover': {
+                      bgcolor: theme.palette.secondary.dark
+                    }
+                  }}
+                >
+                  Donate
+                </Button>
+              )}
               <IconButton
                 size="large"
                 onClick={toggleMobileDrawer}

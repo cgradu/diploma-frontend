@@ -433,27 +433,6 @@ const RegisterForm = () => {
           </FormHelperText>
         </FormControl>
 
-        {/* Terms and Security Info */}
-        <Box
-          sx={{
-            p: 2,
-            bgcolor: alpha(theme.palette.success.main, 0.05),
-            border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
-            borderRadius: 2
-          }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-            <Security sx={{ color: theme.palette.success.main, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-              Your data is secure
-            </Typography>
-          </Stack>
-          <Typography variant="caption" color="text.secondary">
-            We use blockchain technology to ensure your donations are transparent and secure. 
-            By creating an account, you agree to our Terms of Service and Privacy Policy.
-          </Typography>
-        </Box>
-
         {/* Submit Button */}
         <Button
           type="submit"

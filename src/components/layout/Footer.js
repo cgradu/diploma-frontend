@@ -56,8 +56,7 @@ const Footer = () => {
   ];
 
   const trustBadges = [
-    { icon: <Security />, text: 'Blockchain Secured' },
-    { icon: <Verified />, text: 'Verified Impact' }
+    { icon: <Security />, text: 'Blockchain Secured' }
   ];
 
   const FooterLink = ({ to, children, external = false }) => (
@@ -98,7 +97,6 @@ const Footer = () => {
           <Grid container spacing={4}>
             {/* Brand Section */}
             <Grid item xs={12} md={4}>
-              <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                   <VolunteerActivism 
                     sx={{ 
@@ -145,32 +143,6 @@ const Footer = () => {
                     />
                   ))}
                 </Stack>
-
-                {/* Social Links */}
-                <Stack direction="row" spacing={1}>
-                  {socialLinks.map((social, index) => (
-                    <IconButton
-                      key={index}
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      sx={{
-                        bgcolor: alpha(theme.palette.primary.main, 0.1),
-                        color: theme.palette.primary.main,
-                        '&:hover': {
-                          bgcolor: theme.palette.primary.main,
-                          color: '#ffffff',
-                          transform: 'translateY(-2px)'
-                        },
-                        transition: 'all 0.2s ease-in-out'
-                      }}
-                    >
-                      {social.icon}
-                    </IconButton>
-                  ))}
-                </Stack>
-              </Box>
             </Grid>
 
             {/* Quick Links */}
@@ -190,29 +162,6 @@ const Footer = () => {
                   <ListItem key={index} sx={{ p: 0 }}>
                     <FooterLink to={link.path}>
                       {link.text}
-                    </FooterLink>
-                  </ListItem>
-                ))}
-              </List>
-            </Grid>
-
-            {/* Resources */}
-            <Grid item xs={12} sm={6} md={2}>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 'bold',
-                  mb: 2,
-                  color: theme.palette.text.primary
-                }}
-              >
-                Resources
-              </Typography>
-              <List sx={{ p: 0 }}>
-                {resources.map((resource, index) => (
-                  <ListItem key={index} sx={{ p: 0 }}>
-                    <FooterLink to={resource.path}>
-                      {resource.text}
                     </FooterLink>
                   </ListItem>
                 ))}
@@ -254,49 +203,6 @@ const Footer = () => {
                   </Typography>
                 </Box>
               </Stack>
-
-              {/* Newsletter Signup */}
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 3,
-                  bgcolor: alpha(theme.palette.primary.main, 0.05),
-                  border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                  borderRadius: 2
-                }}
-              >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ fontWeight: 'bold', mb: 1 }}
-                >
-                  Stay Updated
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mb: 2 }}
-                >
-                  Get the latest impact stories and platform updates
-                </Typography>
-                <Box
-                  component="a"
-                  href="/newsletter"
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    color: theme.palette.primary.main,
-                    textDecoration: 'none',
-                    fontWeight: 'medium',
-                    '&:hover': {
-                      textDecoration: 'underline'
-                    }
-                  }}
-                >
-                  Subscribe to Newsletter
-                  <ArrowForward sx={{ fontSize: 16 }} />
-                </Box>
-              </Paper>
             </Grid>
           </Grid>
         </Box>

@@ -146,35 +146,9 @@ const Login = () => {
           {/* Login Form Component */}
           <LoginForm />
 
+          {/* Divider */}
           <Divider sx={{ my: 3 }} />
-
           {/* Additional Actions */}
-          <Stack spacing={2}>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ textAlign: 'center' }}
-            >
-              Don't have an account?{' '}
-              <Button
-                component={Link}
-                to="/register"
-                variant="text"
-                sx={{
-                  fontWeight: 'bold',
-                  textTransform: 'none',
-                  p: 0,
-                  minWidth: 'auto',
-                  '&:hover': {
-                    backgroundColor: 'transparent',
-                    textDecoration: 'underline'
-                  }
-                }}
-              >
-                Sign up here
-              </Button>
-            </Typography>
-            
             <Button
               component={Link}
               to="/"
@@ -195,9 +169,9 @@ const Login = () => {
                 }
               }}
             >
+              
               Back to Home
             </Button>
-          </Stack>
         </Paper>
 
         {/* Bottom Info */}
