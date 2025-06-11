@@ -2,43 +2,101 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import charityService from '../services/charityService';
 
-// Get charities with optional filtering
+// Enhanced error handler
+const handleError = (error, operation) => {
+  console.error(`Error in ${operation}:`, error);
+  
+  // Check different error types
+  if (error.response) {
+    // Server responded with error status
+    const message = error.response.data?.message || 
+                   error.response.data?.error || 
+                   `Server error: ${error.response.status}`;
+    console.error(`Server error (${error.response.status}):`, error.response.data);
+    return message;
+  } else if (error.request) {
+    // Request was made but no response received
+    console.error('Network error - no response received:', error.request);
+    return 'Network error - please check your connection';
+  } else {
+    // Something else happened
+    console.error('Error setting up request:', error.message);
+    return error.message || 'An unexpected error occurred';
+  }
+};
+
+// Get charities with optional filtering and retry logic
 export const getCharities = createAsyncThunk(
   'charities/getCharities',
-  async (params = {}, thunkAPI) => {
+  async (params = {}, { rejectWithValue, dispatch, getState }) => {
     try {
-      console.log('Fetching charities with params:', params);
-      return await charityService.getCharities(params);
+      console.log('🔍 Fetching charities with params:', params);
+      console.log('🔍 Current user state:', getState().auth.user ? 'Authenticated' : 'Not authenticated');
+      
+      const result = await charityService.getCharities(params);
+      console.log('✅ Charities fetched successfully:', result);
+      return result;
     } catch (error) {
-      console.error('Error fetching charities:', error);
-      const message = error.response?.data?.message || error.message || error.toString();
-      return thunkAPI.rejectWithValue(message);
+      const errorMessage = handleError(error, 'getCharities');
+      return rejectWithValue(errorMessage);
     }
   }
 );
 
-// Get charity details by ID
+// Get charity details by ID with caching
 export const getCharityById = createAsyncThunk(
   'charities/getCharityById',
-  async (id, thunkAPI) => {
+  async (id, { rejectWithValue, getState }) => {
     try {
-      return await charityService.getCharityById(id);
+      console.log(`🔍 Fetching charity with ID: ${id}`);
+      
+      // Check if we already have this charity in state
+      const currentCharity = getState().charities.charity;
+      if (currentCharity && currentCharity.id === parseInt(id)) {
+        console.log('📦 Using cached charity data');
+        return currentCharity;
+      }
+      
+      const result = await charityService.getCharityById(id);
+      console.log('✅ Charity fetched successfully:', result);
+      return result;
     } catch (error) {
-      const message = error.response?.data?.message || error.message || error.toString();
-      return thunkAPI.rejectWithValue(message);
+      const errorMessage = handleError(error, 'getCharityById');
+      return rejectWithValue(errorMessage);
     }
   }
 );
 
-// Get charity categories
+// Get charity categories with fallback
 export const getCategories = createAsyncThunk(
   'charities/getCategories',
-  async (_, thunkAPI) => {
+  async (_, { rejectWithValue }) => {
     try {
-      return await charityService.getCategories();
+      console.log('🔍 Fetching charity categories');
+      const result = await charityService.getCategories();
+      console.log('✅ Categories fetched successfully:', result);
+      return result;
     } catch (error) {
-      const message = error.response?.data?.message || error.message || error.toString();
-      return thunkAPI.rejectWithValue(message);
+      console.warn('⚠️ Failed to fetch categories, using fallback');
+      const errorMessage = handleError(error, 'getCategories');
+      
+      // Return default categories instead of failing completely
+      const defaultCategories = [
+        'EDUCATION',
+        'HEALTHCARE', 
+        'ENVIRONMENT',
+        'HUMANITARIAN',
+        'ANIMAL_WELFARE',
+        'ARTS_CULTURE',
+        'DISASTER_RELIEF',
+        'HUMAN_RIGHTS',
+        'COMMUNITY_DEVELOPMENT',
+        'RELIGIOUS',
+        'OTHER'
+      ];
+      
+      console.log('📦 Using default categories:', defaultCategories);
+      return defaultCategories;
     }
   }
 );
@@ -46,12 +104,26 @@ export const getCategories = createAsyncThunk(
 // Get charity managed by the logged-in user
 export const getManagerCharity = createAsyncThunk(
   'charities/getManagerCharity',
-  async (_, thunkAPI) => {
+  async (_, { rejectWithValue, getState }) => {
     try {
-      return await charityService.getManagerCharity();
+      console.log('🔍 Fetching manager charity');
+      
+      // Check if user is authenticated and has charity role
+      const user = getState().auth.user;
+      if (!user) {
+        return rejectWithValue('User not authenticated');
+      }
+      
+      if (user.role !== 'charity' && user.role !== 'admin') {
+        return rejectWithValue('User does not have charity management permissions');
+      }
+      
+      const result = await charityService.getManagerCharity();
+      console.log('✅ Manager charity fetched successfully:', result);
+      return result;
     } catch (error) {
-      const message = error.response?.data?.message || error.message || error.toString();
-      return thunkAPI.rejectWithValue(message);
+      const errorMessage = handleError(error, 'getManagerCharity');
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -59,12 +131,40 @@ export const getManagerCharity = createAsyncThunk(
 // Update charity details
 export const updateCharityDetails = createAsyncThunk(
   'charities/updateCharityDetails',
-  async (charityData, thunkAPI) => {
+  async (charityData, { rejectWithValue }) => {
     try {
-      return await charityService.updateCharityDetails(charityData);
+      console.log('🔄 Updating charity details:', charityData);
+      const result = await charityService.updateCharityDetails(charityData);
+      console.log('✅ Charity updated successfully:', result);
+      return result;
     } catch (error) {
-      const message = error.response?.data?.message || error.message || error.toString();
-      return thunkAPI.rejectWithValue(message);
+      const errorMessage = handleError(error, 'updateCharityDetails');
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Retry failed requests
+export const retryFailedRequest = createAsyncThunk(
+  'charities/retryFailedRequest',
+  async (action, { dispatch, rejectWithValue }) => {
+    try {
+      console.log('🔄 Retrying failed request:', action);
+      
+      switch (action.type) {
+        case 'getCharities':
+          return await dispatch(getCharities(action.params));
+        case 'getCharityById':
+          return await dispatch(getCharityById(action.id));
+        case 'getCategories':
+          return await dispatch(getCategories());
+        case 'getManagerCharity':
+          return await dispatch(getManagerCharity());
+        default:
+          throw new Error('Unknown action type for retry');
+      }
+    } catch (error) {
+      return rejectWithValue('Retry failed');
     }
   }
 );
@@ -72,8 +172,8 @@ export const updateCharityDetails = createAsyncThunk(
 const initialState = {
   charities: [],
   charity: null,
-  managerCharity: null, // Added for charity manager
-  categories: ['All Categories'], // Default to include "All Categories"
+  managerCharity: null,
+  categories: ['All Categories'],
   pagination: {
     page: 1,
     limit: 6,
@@ -83,7 +183,10 @@ const initialState = {
   isLoading: false,
   isSuccess: false,
   isError: false,
-  message: ''
+  message: '',
+  lastFetch: null, // Track when data was last fetched
+  retryCount: 0, // Track retry attempts
+  networkError: false // Track if error is network-related
 };
 
 export const charitySlice = createSlice({
@@ -95,6 +198,7 @@ export const charitySlice = createSlice({
       state.isSuccess = false;
       state.isError = false;
       state.message = '';
+      state.networkError = false;
     },
     clearCharity: (state) => {
       state.charity = null;
@@ -104,6 +208,18 @@ export const charitySlice = createSlice({
       state.isSuccess = false;
       state.isError = false;
       state.message = '';
+      state.networkError = false;
+    },
+    clearError: (state) => {
+      state.isError = false;
+      state.message = '';
+      state.networkError = false;
+    },
+    incrementRetryCount: (state) => {
+      state.retryCount += 1;
+    },
+    resetRetryCount: (state) => {
+      state.retryCount = 0;
     }
   },
   extraReducers: (builder) => {
@@ -112,50 +228,85 @@ export const charitySlice = createSlice({
       .addCase(getCharities.pending, (state) => {
         state.isLoading = true;
         state.isError = false;
+        state.message = '';
+        state.networkError = false;
       })
       .addCase(getCharities.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        // Check the structure of the response
-        console.log('Charities response:', action.payload);
+        state.isError = false;
+        state.retryCount = 0;
+        state.lastFetch = Date.now();
         
-        if (action.payload && action.payload.charities) {
-          // Handle response structure from service: { charities: [], pagination: {} }
+        console.log('📦 Processing charities response:', action.payload);
+        
+        // Handle different response structures
+        if (action.payload?.success && action.payload?.data) {
+          // Backend returns: { success: true, data: { charities: [], pagination: {} } }
+          const { charities, pagination } = action.payload.data;
+          state.charities = charities || [];
+          state.pagination = pagination || state.pagination;
+        } else if (action.payload?.charities) {
+          // Direct structure: { charities: [], pagination: {} }
           state.charities = action.payload.charities;
-          state.pagination = action.payload.pagination;
+          state.pagination = action.payload.pagination || state.pagination;
+        } else if (Array.isArray(action.payload)) {
+          // Direct array response
+          state.charities = action.payload;
         } else {
-          // Fallback in case the response structure is different
-          state.charities = action.payload || [];
-          // Preserve pagination if possible
-          if (action.payload && action.payload.pagination) {
-            state.pagination = action.payload.pagination;
-          }
+          // Fallback
+          console.warn('⚠️ Unexpected response structure:', action.payload);
+          state.charities = [];
         }
+        
+        console.log(`✅ Loaded ${state.charities.length} charities`);
       })
       .addCase(getCharities.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;
-        // Clear charities when error occurs to avoid showing stale data
-        state.charities = [];
+        state.retryCount += 1;
+        
+        // Determine if it's a network error
+        state.networkError = action.payload?.includes('Network error') || 
+                            action.payload?.includes('network') ||
+                            action.payload?.includes('connection');
+        
+        // Don't clear existing charities on network errors (show stale data)
+        if (!state.networkError) {
+          state.charities = [];
+        }
+        
+        console.error(`❌ Failed to fetch charities (attempt ${state.retryCount}):`, action.payload);
       })
       
       // Get charity by ID cases
       .addCase(getCharityById.pending, (state) => {
         state.isLoading = true;
         state.isError = false;
+        state.message = '';
       })
       .addCase(getCharityById.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.charity = action.payload;
-        console.log('Fetched charity:', action.payload);
+        state.isError = false;
+        
+        // Handle different response structures
+        if (action.payload?.success && action.payload?.data) {
+          state.charity = action.payload.data;
+        } else {
+          state.charity = action.payload;
+        }
+        
+        console.log('✅ Charity details loaded:', state.charity?.name);
       })
       .addCase(getCharityById.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;
         state.charity = null;
+        
+        console.error('❌ Failed to fetch charity details:', action.payload);
       })
       
       // Get categories cases
@@ -166,60 +317,116 @@ export const charitySlice = createSlice({
       .addCase(getCategories.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        // Handle categories
-        if (action.payload && Array.isArray(action.payload)) {
-          // Add "All Categories" if not already included
-          if (!action.payload.includes('All Categories')) {
-            state.categories = ['All Categories', ...action.payload];
-          } else {
-            state.categories = action.payload;
-          }
+        state.isError = false;
+        
+        // Handle categories response
+        let categories = action.payload;
+        if (action.payload?.success && action.payload?.data) {
+          categories = action.payload.data;
         }
+        
+        if (Array.isArray(categories)) {
+          // Add "All Categories" if not already included
+          const hasAllCategories = categories.some(cat => 
+            cat === 'All Categories' || cat === 'ALL'
+          );
+          
+          if (!hasAllCategories) {
+            state.categories = ['All Categories', ...categories];
+          } else {
+            state.categories = categories;
+          }
+        } else {
+          console.warn('⚠️ Categories response is not an array:', categories);
+          state.categories = ['All Categories'];
+        }
+        
+        console.log('✅ Categories loaded:', state.categories);
       })
       .addCase(getCategories.rejected, (state, action) => {
+        // Don't set loading false or error true since we handle this gracefully
         state.isLoading = false;
-        state.isError = true;
-        state.message = action.payload;
+        console.warn('⚠️ Categories fetch failed, keeping defaults:', action.payload);
       })
       
       // Get Manager Charity cases
       .addCase(getManagerCharity.pending, (state) => {
         state.isLoading = true;
         state.isError = false;
+        state.message = '';
       })
       .addCase(getManagerCharity.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.managerCharity = action.payload;
+        state.isError = false;
+        
+        // Handle different response structures
+        if (action.payload?.success && action.payload?.data) {
+          state.managerCharity = action.payload.data;
+        } else {
+          state.managerCharity = action.payload;
+        }
+        
+        console.log('✅ Manager charity loaded:', state.managerCharity?.name);
       })
       .addCase(getManagerCharity.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;
         state.managerCharity = null;
+        
+        console.error('❌ Failed to fetch manager charity:', action.payload);
       })
       
       // Update Charity Details cases
       .addCase(updateCharityDetails.pending, (state) => {
         state.isLoading = true;
         state.isError = false;
+        state.message = '';
       })
       .addCase(updateCharityDetails.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.managerCharity = action.payload;
-        // If the updated charity is also the currently viewed charity, update that too
-        if (state.charity && state.charity.id === action.payload.id) {
-          state.charity = action.payload;
+        state.isError = false;
+        
+        // Handle different response structures
+        let updatedCharity = action.payload;
+        if (action.payload?.success && action.payload?.data) {
+          updatedCharity = action.payload.data;
         }
+        
+        state.managerCharity = updatedCharity;
+        
+        // If the updated charity is also the currently viewed charity, update that too
+        if (state.charity && state.charity.id === updatedCharity.id) {
+          state.charity = updatedCharity;
+        }
+        
+        // Update in the charities array if present
+        const index = state.charities.findIndex(charity => charity.id === updatedCharity.id);
+        if (index !== -1) {
+          state.charities[index] = updatedCharity;
+        }
+        
+        console.log('✅ Charity updated successfully:', updatedCharity.name);
       })
       .addCase(updateCharityDetails.rejected, (state, action) => {
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;
+        
+        console.error('❌ Failed to update charity:', action.payload);
       });
   },
 });
 
-export const { reset, clearCharity, resetCharityState } = charitySlice.actions;
+export const { 
+  reset, 
+  clearCharity, 
+  resetCharityState, 
+  clearError, 
+  incrementRetryCount, 
+  resetRetryCount 
+} = charitySlice.actions;
+
 export default charitySlice.reducer;

@@ -26,7 +26,7 @@ const BlockchainVerification = ({ donationId }) => {
 
     fetchVerification();
   }, [donationId]);
-
+  
   if (loading) {
     return (
       <div className="bg-gray-50 p-4 rounded-md flex items-center justify-center" style={{ minHeight: '140px' }}>

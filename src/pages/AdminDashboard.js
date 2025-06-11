@@ -39,7 +39,6 @@ import {
 // Import admin components
 import DashboardOverview from '../components/admin/DashboardOverview';
 import UserManagement from '../components/admin/UserManagement';
-import Navbar from '../components/layout/Navbar';
 // Temporary placeholders for components we haven't created yet
 const CharityManagement = () => <Box sx={{ p: 3 }}><Typography>Charity Management - Coming Soon</Typography></Box>;
 const ProjectManagement = () => <Box sx={{ p: 3 }}><Typography>Project Management - Coming Soon</Typography></Box>;
@@ -180,7 +179,6 @@ const AdminDashboard = () => {
 
   return (
     <Box sx={{ flexGrow: 1, bgcolor: 'background.default', minHeight: '100vh' }}>
-        <Navbar />
       {/* Header */}
       <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 2 }}>
         <Container maxWidth="xl">

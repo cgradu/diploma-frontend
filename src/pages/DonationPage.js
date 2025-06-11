@@ -29,10 +29,11 @@ import {
   Payment as PaymentIcon,
   CheckCircle as CheckCircleIcon,
   Security as SecurityIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  Login as LoginIcon
 } from '@mui/icons-material';
 
-// Import your  components
+// Import your components
 import DonationForm from '../components/donation/DonationForm';
 import PaymentForm from '../components/donation/PaymentForm';
 import DonationSuccess from '../components/donation/DonationSuccess';
@@ -41,7 +42,7 @@ import Navbar from '../components/layout/Navbar';
 import { 
   createPaymentIntent, 
   resetDonationState, 
-  clearCurrentDonation 
+  clearCurrentDonation
 } from '../redux/slices/donationSlice';
 import { getCharities } from '../redux/slices/charitySlice';
 import { getProjectsByCharityId } from '../redux/slices/projectSlice';
@@ -92,6 +93,7 @@ const DonationPage = () => {
   const projectIdParam = projectId || urlParams.get('projectId');
   
   const [activeStep, setActiveStep] = useState(0);
+  const [isRedirecting, setIsRedirecting] = useState(false); // Track redirect state
   const [donationData, setDonationData] = useState({
     amount: 25,
     charityId: charityIdParam || '',
@@ -119,39 +121,67 @@ const DonationPage = () => {
   const isError = useSelector(selectDonationError);
   const message = useSelector(selectDonationMessage);
 
-  // Authentication check
+  // Handle snackbar close
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  // Enhanced authentication redirect handling
   useEffect(() => {
-    if (!user) {
-      navigate('/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search));
+    if (user === null) {
+      // User is explicitly not authenticated
+      setIsRedirecting(true);
+      
+      setSnackbar({
+        open: true,
+        message: 'You must be logged in to make a donation. Redirecting...',
+        severity: 'warning'
+      });
+
+      const timer = setTimeout(() => {
+        const redirectUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        navigate(`/login?redirect=${redirectUrl}`);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    } else if (user) {
+      // User is authenticated, ensure we're not in redirecting state
+      setIsRedirecting(false);
     }
+    // Note: if user is undefined, we're still loading auth state
   }, [user, navigate]);
 
-  // Initial data fetch
+  // Initial data fetch - only when authenticated
   useEffect(() => {
-    if (!charities.length && !charitiesLoading) {
-      dispatch(getCharities());
-    }
+    if (user && !isRedirecting) {
+      if (!charities.length && !charitiesLoading) {
+        dispatch(getCharities());
+      }
 
-    if (charityIdParam) {
-      dispatch(getProjectsByCharityId(charityIdParam));
+      if (charityIdParam) {
+        dispatch(getProjectsByCharityId(charityIdParam));
+      }
     }
     
     return () => {
-      dispatch(clearCurrentDonation());
+      if (user && !isRedirecting) {
+        dispatch(clearCurrentDonation());
+      }
     };
-  }, [dispatch, charities.length, charitiesLoading, charityIdParam]);
+  }, [dispatch, charities.length, charitiesLoading, charityIdParam, user, isRedirecting]);
   
   // Step management
   useEffect(() => {
-    if (clientSecret && activeStep === 0) {
+    if (user && !isRedirecting && clientSecret && activeStep === 0) {
       setActiveStep(1);
       dispatch(resetDonationState());
     }
-  }, [clientSecret, activeStep, dispatch]);
+  }, [clientSecret, activeStep, dispatch, user, isRedirecting]);
   
   // Error handling
   useEffect(() => {
-    if (isError && message) {
+    if (user && !isRedirecting && isError && message) {
       setSnackbar({
         open: true,
         message: message,
@@ -159,10 +189,12 @@ const DonationPage = () => {
       });
       dispatch(resetDonationState());
     }
-  }, [isError, message, dispatch]);
+  }, [isError, message, dispatch, user, isRedirecting]);
   
   // Handle donation form completion
   const handleDonationFormComplete = (formData) => {
+    if (!user || isRedirecting) return;
+    
     const data = {
       ...donationData,
       ...formData
@@ -210,25 +242,6 @@ const DonationPage = () => {
       }
     }
   };
-
-  // Handle snackbar close
-  const handleSnackbarClose = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  if (!user) {
-    return (
-      <Backdrop open={true} sx={{ zIndex: theme.zIndex.drawer + 1 }}>
-        <Box textAlign="center">
-          <CircularProgress size={60} />
-          <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
-            Redirecting to login...
-          </Typography>
-        </Box>
-      </Backdrop>
-    );
-  }
   
   // Stripe options
   const stripeOptions = clientSecret ? {
@@ -243,6 +256,43 @@ const DonationPage = () => {
       }
     }
   } : {};
+
+  // Show loading during auth check or redirect
+  if (user === undefined || isRedirecting) {
+    return (
+      <Box sx={{ 
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${theme.palette.primary.light}10 0%, ${theme.palette.secondary.light}10 100%)`,
+      }}>
+        <Navbar />
+        <Backdrop open sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+          <Box textAlign="center">
+            <CircularProgress size={60} color="primary" />
+            <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+              {isRedirecting ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <LoginIcon />
+                  Redirecting to login...
+                </Box>
+              ) : (
+                'Checking authentication...'
+              )}
+            </Typography>
+            {isRedirecting && (
+              <Typography variant="body2" sx={{ mt: 1, color: 'rgba(255, 255, 255, 0.7)' }}>
+                Please log in to continue with your donation
+              </Typography>
+            )}
+          </Box>
+        </Backdrop>
+      </Box>
+    );
+  }
+
+  // If user is explicitly null, don't render the main content
+  if (user === null) {
+    return null;
+  }
 
   const renderStepContent = () => {
     switch (activeStep) {
@@ -308,6 +358,7 @@ const DonationPage = () => {
               background: 'rgba(255, 255, 255, 0.95)',
               backdropFilter: 'blur(10px)',
               border: `1px solid ${theme.palette.divider}`,
+              position: 'relative'
             }}
           >
             {/* Header Section */}
@@ -434,8 +485,8 @@ const DonationPage = () => {
               </Stepper>
             </Box>
 
-            {/* Loading Overlay */}
-            {isLoading && (
+            {/* Loading Overlay for donation operations only */}
+            {isLoading && user && !isRedirecting && (
               <Box 
                 sx={{ 
                   position: 'absolute',
@@ -443,24 +494,28 @@ const DonationPage = () => {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  background: 'rgba(255, 255, 255, 0.8)',
+                  background: 'rgba(255, 255, 255, 0.9)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  zIndex: 10
+                  zIndex: 10,
+                  backdropFilter: 'blur(2px)'
                 }}
               >
                 <CircularProgress size={60} />
                 <Typography variant="h6" sx={{ mt: 2 }}>
-                  Processing your request...
+                  Processing your donation...
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Please wait while we process your request
                 </Typography>
               </Box>
             )}
 
-            {/* Step Content */}
+            {/* Step Content - Only show if user is authenticated and not redirecting */}
             <Box sx={{ p: 4, minHeight: 400, position: 'relative' }}>
-              {renderStepContent()}
+              {user && !isRedirecting && renderStepContent()}
             </Box>
 
             {/* Blockchain Info Footer */}

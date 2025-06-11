@@ -45,7 +45,7 @@ import Navbar from '../components/layout/Navbar';
 const Charities = () => {
   const dispatch = useDispatch();
   const theme = useTheme();
-  
+  const { user } = useSelector((state) => state.auth);  
   const {
     charities, 
     categories,
@@ -129,8 +129,8 @@ const Charities = () => {
     <Card
       elevation={0}
       sx={{
-        width: 360, // Fixed width
-        height: 440, // Reduced height
+        width: 400, // Increased from 400 to 600 (1.5x)
+        height: 520, // Increased from 480 to 720 (1.5x)
         display: 'flex',
         flexDirection: 'column',
         border: `1px solid ${theme.palette.divider}`,
@@ -147,7 +147,7 @@ const Charities = () => {
       {/* Charity Header Image */}
       <Box
         sx={{
-          height: 100, // Reduced height
+          height: 120, // Increased from 100 to 150 (1.5x)
           bgcolor: alpha(theme.palette.primary.main, 0.05),
           display: 'flex',
           alignItems: 'center',
@@ -157,7 +157,7 @@ const Charities = () => {
           flexShrink: 0
         }}
       >
-        <Business sx={{ fontSize: 32, color: alpha(theme.palette.primary.main, 0.3) }} />
+        <Business sx={{ fontSize: 48, color: alpha(theme.palette.primary.main, 0.3) }} /> {/* Increased from 32 to 48 */}
         
         {/* Category Badge */}
         <Chip
@@ -165,46 +165,46 @@ const Charities = () => {
           size="small"
           sx={{
             position: 'absolute',
-            top: 6,
-            left: 6,
+            top: 6, // Increased from 6 to 9
+            left: 6, // Increased from 6 to 9
             bgcolor: theme.palette.primary.main,
             color: '#ffffff',
             fontWeight: 'bold',
-            fontSize: '0.65rem',
-            height: 18
+            fontSize: '0.6rem', // Increased from 0.65rem to 0.8rem
+            height: 18 // Increased from 18 to 27
           }}
         />
         
         {/* Verification Badge */}
         {charity.verified && (
           <Chip
-            icon={<Verified sx={{ fontSize: 12 }} />}
+            icon={<Verified sx={{ fontSize: 18 }} />} 
             label="Verified"
             size="small"
             sx={{
               position: 'absolute',
-              top: 6,
-              right: 6,
+              top: 9, // Increased from 6 to 9
+              right: 9, // Increased from 6 to 9
               bgcolor: theme.palette.success.main,
               color: '#ffffff',
               fontWeight: 'bold',
-              fontSize: '0.65rem',
-              height: 18
+              fontSize: '0.8rem', // Increased from 0.65rem to 0.8rem
+              height: 27 // Increased from 18 to 27
             }}
           />
         )}
       </Box>
 
-      <CardContent sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
+      <CardContent sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column' }}> {/* Increased padding from 2 to 3 */}
         {/* Charity Name */}
         <Typography
-          variant="subtitle1"
+          variant="h6" // Changed from subtitle1 to h6 for larger text
           component="h3"
           sx={{
             fontWeight: 'bold',
-            mb: 1,
+            mb: 1.5, // Increased from 1 to 1.5
             lineHeight: 1.2,
-            height: '2.4em', // Fixed height for 2 lines
+            height: '3.6em', // Increased from 2.4em to 3.6em (1.5x)
             display: '-webkit-box',
             '-webkit-line-clamp': 2,
             '-webkit-box-orient': 'vertical',
@@ -216,19 +216,19 @@ const Charities = () => {
         </Typography>
 
         {/* Location */}
-        <Box sx={{ height: '1.2em', mb: 1 }}>
+        <Box sx={{ height: '1.8em', mb: 1.5 }}> {/* Increased height from 1.2em to 1.8em, margin from 1 to 1.5 */}
           {charity.address && (
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <LocationOn sx={{ fontSize: 12, color: theme.palette.text.secondary, flexShrink: 0 }} />
+            <Stack direction="row" spacing={0.75} alignItems="center"> {/* Increased spacing from 0.5 to 0.75 */}
+              <LocationOn sx={{ fontSize: 18, color: theme.palette.text.secondary, flexShrink: 0 }} /> {/* Increased from 12 to 18 */}
               <Typography 
-                variant="caption" 
+                variant="body2" // Changed from caption to body2
                 color="text.secondary"
                 sx={{
                   display: '-webkit-box',
                   '-webkit-line-clamp': 1,
                   '-webkit-box-orient': 'vertical',
                   overflow: 'hidden',
-                  fontSize: '0.7rem',
+                  fontSize: '0.875rem', // Increased from 0.7rem to 0.875rem
                   wordBreak: 'break-word'
                 }}
               >
@@ -240,17 +240,17 @@ const Charities = () => {
 
         {/* Description */}
         <Typography
-          variant="body2"
+          variant="body1" // Changed from body2 to body1
           color="text.secondary"
           sx={{
-            mb: 1.5,
-            height: '2.4em', // Fixed height for 2 lines
+            mb: 2.25, // Increased from 1.5 to 2.25
+            height: '3.6em', // Increased from 2.4em to 3.6em (1.5x)
             display: '-webkit-box',
             '-webkit-line-clamp': 2,
             '-webkit-box-orient': 'vertical',
             overflow: 'hidden',
             lineHeight: 1.2,
-            fontSize: '0.8rem',
+            fontSize: '1rem', // Increased from 0.8rem to 1rem
             wordBreak: 'break-word'
           }}
         >
@@ -258,24 +258,24 @@ const Charities = () => {
         </Typography>
 
         {/* Impact Metrics */}
-        <Box sx={{ mt: 'auto', mb: 1 }}>
+        <Box sx={{ mt: 'auto', mb: 1.5 }}> {/* Increased margin from 1 to 1.5 */}
           {charity.impactMetrics && (
-            <Grid container spacing={1}>
+            <Grid container spacing={1.5}> {/* Increased spacing from 1 to 1.5 */}
               <Grid item xs={6}>
                 <Paper
                   elevation={0}
                   sx={{
-                    p: 0.8,
+                    p: 1.2, // Increased from 0.8 to 1.2
                     textAlign: 'center',
                     bgcolor: alpha(theme.palette.primary.main, 0.05),
                     border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
                     borderRadius: 1
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontSize: '0.8rem' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontSize: '1.2rem' }}> {/* Increased from subtitle2 and 0.8rem to h6 and 1.2rem */}
                     {charity.impactMetrics.projectsCount || 0}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}> {/* Changed from caption and increased from 0.65rem to 0.875rem */}
                     Projects
                   </Typography>
                 </Paper>
@@ -284,17 +284,17 @@ const Charities = () => {
                 <Paper
                   elevation={0}
                   sx={{
-                    p: 0.8,
+                    p: 1.2, // Increased from 0.8 to 1.2
                     textAlign: 'center',
                     bgcolor: alpha(theme.palette.secondary.main, 0.05),
                     border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}`,
                     borderRadius: 1
                   }}
                 >
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: theme.palette.secondary.main, fontSize: '0.8rem' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.secondary.main, fontSize: '1.2rem' }}> {/* Increased from subtitle2 and 0.8rem to h6 and 1.2rem */}
                     {charity.impactMetrics.donationsCount || 0}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}> {/* Changed from caption and increased from 0.65rem to 0.875rem */}
                     Donations
                   </Typography>
                 </Paper>
@@ -306,18 +306,18 @@ const Charities = () => {
           {charity.blockchainVerified && (
             <Stack
               direction="row"
-              spacing={0.5}
+              spacing={0.75} // Increased from 0.5 to 0.75
               alignItems="center"
               sx={{
-                p: 0.8,
+                p: 1.2, // Increased from 0.8 to 1.2
                 bgcolor: alpha(theme.palette.success.main, 0.05),
                 border: `1px solid ${alpha(theme.palette.success.main, 0.2)}`,
                 borderRadius: 1,
-                mt: 1
+                mt: 1.5 // Increased from 1 to 1.5
               }}
             >
-              <Security sx={{ fontSize: 12, color: theme.palette.success.main }} />
-              <Typography variant="caption" sx={{ fontWeight: 'medium', color: theme.palette.success.main, fontSize: '0.65rem' }}>
+              <Security sx={{ fontSize: 18, color: theme.palette.success.main }} /> {/* Increased from 12 to 18 */}
+              <Typography variant="body2" sx={{ fontWeight: 'medium', color: theme.palette.success.main, fontSize: '0.875rem' }}> {/* Changed from caption and increased from 0.65rem to 0.875rem */}
                 Blockchain Verified
               </Typography>
             </Stack>
@@ -326,38 +326,39 @@ const Charities = () => {
       </CardContent>
 
       {/* Card Actions */}
-      <CardActions sx={{ p: 1.5, pt: 0, justifyContent: 'space-between', flexShrink: 0 }}>
+      <CardActions sx={{ p: 2.25, pt: 0, justifyContent: 'space-between', flexShrink: 0 }}> {/* Increased padding from 1.5 to 2.25 */}
         <Button
           component={Link}
           to={`/charities/${charity.id}`}
           variant="outlined"
-          size="small"
+          size="medium" // Changed from small to medium
           startIcon={<Visibility />}
           sx={{
             borderRadius: 1,
             textTransform: 'none',
             fontWeight: 'medium',
-            fontSize: '0.7rem',
-            px: 1.5,
-            py: 0.5,
+            fontSize: '0.875rem', // Increased from 0.7rem to 0.875rem
+            px: 2.25, // Increased from 1.5 to 2.25
+            py: 0.75, // Increased from 0.5 to 0.75
             minWidth: 'auto'
           }}
         >
           Details
         </Button>
+        {(!user || user.role !== 'charity') && (
         <Button
           component={Link}
-          to={`/donate/${charity.id}`}
+          to={`/donate/charity/${charity.id}`}
           variant="contained"
-          size="small"
+          size="medium" // Changed from small to medium
           startIcon={<VolunteerActivism />}
           sx={{
             borderRadius: 1,
             textTransform: 'none',
             fontWeight: 'bold',
-            fontSize: '0.7rem',
-            px: 1.5,
-            py: 0.5,
+            fontSize: '0.875rem', // Increased from 0.7rem to 0.875rem
+            px: 2.25, // Increased from 1.5 to 2.25
+            py: 0.75, // Increased from 0.5 to 0.75
             minWidth: 'auto',
             bgcolor: theme.palette.secondary.main,
             '&:hover': {
@@ -369,6 +370,7 @@ const Charities = () => {
         >
           Donate
         </Button>
+        )}
       </CardActions>
     </Card>
   );
@@ -441,15 +443,28 @@ const Charities = () => {
           <Paper
             elevation={8}
             sx={{
-              p: 4,
+              p: { xs: 3, sm: 4, md: 6 },
               borderRadius: 3,
               bgcolor: 'rgba(255, 255, 255, 0.95)',
-              backdropFilter: 'blur(10px)'
+              backdropFilter: 'blur(10px)',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center'
             }}
           >
-            <Grid container spacing={3} alignItems="center">
+            <Stack 
+              direction={{ xs: 'column', md: 'row' }} 
+              spacing={{ xs: 2, sm: 3, md: 4 }}
+              sx={{ 
+                width: '100%',
+                alignItems: 'stretch',
+                flex: 1
+              }}
+            >
               {/* Search Input */}
-              <Grid item xs={12} md={6}>
+              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 55%' } }}>
                 <TextField
                   fullWidth
                   placeholder="Search charities by name, location, or cause..."
@@ -459,21 +474,24 @@ const Charities = () => {
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Search sx={{ color: theme.palette.action.active }} />
+                        <Search sx={{ color: theme.palette.action.active, fontSize: { xs: 20, sm: 24, md: 28 } }} />
                       </InputAdornment>
                     ),
                   }}
                   sx={{
+                    height: '100%',
                     '& .MuiOutlinedInput-root': {
                       borderRadius: 2,
+                      height: { xs: '56px', sm: '60px', md: '68px' },
+                      fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
                     }
                   }}
                 />
-              </Grid>
+              </Box>
 
               {/* Category Filter */}
-              <Grid item xs={12} md={4}>
-                <FormControl fullWidth>
+              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 30%' } }}>
+                <FormControl fullWidth sx={{ height: '100%' }}>
                   <InputLabel>Category</InputLabel>
                   <Select
                     value={selectedCategory}
@@ -481,6 +499,8 @@ const Charities = () => {
                     onChange={handleCategoryChange}
                     sx={{
                       borderRadius: 2,
+                      height: { xs: '56px', sm: '60px', md: '68px' },
+                      fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
                     }}
                   >
                     <MenuItem value="All Categories">All Categories</MenuItem>
@@ -493,33 +513,45 @@ const Charities = () => {
                     ))}
                   </Select>
                 </FormControl>
-              </Grid>
+              </Box>
 
               {/* Search Button */}
-              <Grid item xs={12} md={2}>
-                <Stack spacing={1}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    onClick={handleSearchSubmit}
-                    sx={{
-                      py: 1.5,
-                      borderRadius: 2,
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    Search
-                  </Button>
-                </Stack>
-              </Grid>
-            </Grid>
+              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 15%' } }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  onClick={handleSearchSubmit}
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 'bold',
+                    height: { xs: '56px', sm: '60px', md: '68px' },
+                    fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                    width: '100%'
+                  }}
+                >
+                  Search
+                </Button>
+              </Box>
+            </Stack>
 
             {/* Active Filters */}
             {(searchTerm || selectedCategory !== 'All Categories') && (
-              <Box sx={{ mt: 3, pt: 3, borderTop: `1px solid ${theme.palette.divider}` }}>
-                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                  <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
+              <Box sx={{ 
+                mt: { xs: 3, sm: 4, md: 5 }, 
+                pt: { xs: 2, sm: 3 }, 
+                borderTop: `1px solid ${theme.palette.divider}`,
+                width: '100%'
+              }}>
+                <Stack 
+                  direction="row" 
+                  spacing={2} 
+                  alignItems="center" 
+                  flexWrap="wrap" 
+                  useFlexGap
+                  sx={{ width: '100%' }}
+                >
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                     Active filters:
                   </Typography>
                   {searchTerm && (
@@ -530,7 +562,7 @@ const Charities = () => {
                         setInputSearchTerm('');
                         setCurrentPage(1);
                       }}
-                      size="small"
+                      size="medium"
                       color="primary"
                     />
                   )}
@@ -541,15 +573,15 @@ const Charities = () => {
                         setSelectedCategory('All Categories');
                         setCurrentPage(1);
                       }}
-                      size="small"
+                      size="medium"
                       color="primary"
                     />
                   )}
                   <Button
                     startIcon={<ClearAll />}
                     onClick={clearFilters}
-                    size="small"
-                    sx={{ ml: 1 }}
+                    size="medium"
+                    sx={{ fontSize: '1rem' }}
                   >
                     Clear All
                   </Button>
@@ -563,7 +595,7 @@ const Charities = () => {
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ py: 6 }}>
         {/* Debug Panel */}
-        {process.env.NODE_ENV === 'development' && (
+        {user === 'admin' && (
           <Accordion sx={{ mb: 4 }}>
             <AccordionSummary expandIcon={<ExpandMore />}>
               <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>

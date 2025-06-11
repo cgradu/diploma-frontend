@@ -255,7 +255,7 @@ const Home = () => {
                       transition: 'all 0.2s ease-in-out'
                     }}
                   >
-                    Explore Charities
+                    Charities
                   </Button>
                 </Stack>
 

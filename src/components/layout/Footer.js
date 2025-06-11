@@ -9,9 +9,7 @@ import {
   ListItem,
   Divider,
   Stack,
-  IconButton,
   Chip,
-  Paper,
   useTheme,
   alpha
 } from '@mui/material';
@@ -19,13 +17,7 @@ import {
   VolunteerActivism,
   Email,
   Phone,
-  Security,
-  Verified,
-  Facebook,
-  Twitter,
-  LinkedIn,
-  Instagram,
-  ArrowForward
+  Security
 } from '@mui/icons-material';
 
 const Footer = () => {
@@ -34,25 +26,10 @@ const Footer = () => {
 
   const quickLinks = [
     { text: 'Home', path: '/' },
-    { text: 'Explore Charities', path: '/charities' },
+    { text: 'Charities', path: '/charities' },
     { text: 'Dashboard', path: '/dashboard' },
     { text: 'Login', path: '/login' },
     { text: 'Sign Up', path: '/register' }
-  ];
-
-  const resources = [
-    { text: 'How It Works', path: '/how-it-works' },
-    { text: 'Blockchain Verification', path: '/blockchain-verification' },
-    { text: 'Impact Stories', path: '/impact-stories' },
-    { text: 'FAQ', path: '/faq' },
-    { text: 'Help Center', path: '/help' }
-  ];
-
-  const socialLinks = [
-    { icon: <Facebook />, label: 'Facebook', href: '#' },
-    { icon: <Twitter />, label: 'Twitter', href: '#' },
-    { icon: <LinkedIn />, label: 'LinkedIn', href: '#' },
-    { icon: <Instagram />, label: 'Instagram', href: '#' }
   ];
 
   const trustBadges = [

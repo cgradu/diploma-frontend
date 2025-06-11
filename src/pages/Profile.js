@@ -29,7 +29,8 @@ import {
   ListItemIcon,
   ListItemText,
   useTheme,
-  alpha
+  alpha,
+  LinearProgress
 } from '@mui/material';
 import {
   Person,
@@ -44,12 +45,208 @@ import {
   Security,
   Favorite,
   Check,
-  Info
+  Info,
+  CheckCircle,
+  Cancel,
+  Warning
 } from '@mui/icons-material';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
 import { getProfile, updateProfile, updateProfileDetails, changePassword } from '../redux/slices/authSlice';
 import { getManagerCharity, updateCharityDetails, resetCharityState } from '../redux/slices/charitySlice';
+
+// Password validation hook
+const usePasswordValidation = (password) => {
+  const [validation, setValidation] = useState({
+    isValid: false,
+    errors: [],
+    requirements: {
+      minLength: false,
+      hasUppercase: false,
+      hasLowercase: false,
+      hasNumber: false,
+      hasSpecialChar: false
+    },
+    strength: 'Very Weak'
+  });
+
+  useEffect(() => {
+    const validatePassword = (pwd) => {
+      const errors = [];
+      const requirements = {
+        minLength: false,
+        hasUppercase: false,
+        hasLowercase: false,
+        hasNumber: false,
+        hasSpecialChar: false
+      };
+
+      // Check minimum length
+      if (!pwd || pwd.length < 8) {
+        errors.push('Password must be at least 8 characters long');
+      } else {
+        requirements.minLength = true;
+      }
+
+      // Check for uppercase letter
+      if (!/[A-Z]/.test(pwd)) {
+        errors.push('Password must include at least one uppercase letter');
+      } else {
+        requirements.hasUppercase = true;
+      }
+
+      // Check for lowercase letter
+      if (!/[a-z]/.test(pwd)) {
+        errors.push('Password must include at least one lowercase letter');
+      } else {
+        requirements.hasLowercase = true;
+      }
+
+      // Check for number
+      if (!/\d/.test(pwd)) {
+        errors.push('Password must include at least one number');
+      } else {
+        requirements.hasNumber = true;
+      }
+
+      // Check for special character
+      if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(pwd)) {
+        errors.push('Password must include at least one special character');
+      } else {
+        requirements.hasSpecialChar = true;
+      }
+
+      const metRequirements = Object.values(requirements).filter(Boolean).length;
+      let strength = 'Very Weak';
+      
+      switch (metRequirements) {
+        case 2: strength = 'Weak'; break;
+        case 3: strength = 'Fair'; break;
+        case 4: strength = 'Good'; break;
+        case 5: strength = 'Strong'; break;
+      }
+
+      return {
+        isValid: errors.length === 0,
+        errors,
+        requirements,
+        strength
+      };
+    };
+
+    setValidation(validatePassword(password));
+  }, [password]);
+
+  return validation;
+};
+
+// Password strength indicator component
+const PasswordStrengthIndicator = ({ strength, isValid, theme }) => {
+  const getStrengthColor = () => {
+    switch (strength) {
+      case 'Very Weak': return theme.palette.error.main;
+      case 'Weak': return theme.palette.warning.main;
+      case 'Fair': return theme.palette.info.main;
+      case 'Good': return theme.palette.primary.main;
+      case 'Strong': return theme.palette.success.main;
+      default: return theme.palette.grey[300];
+    }
+  };
+
+  const getStrengthValue = () => {
+    switch (strength) {
+      case 'Very Weak': return 20;
+      case 'Weak': return 40;
+      case 'Fair': return 60;
+      case 'Good': return 80;
+      case 'Strong': return 100;
+      default: return 0;
+    }
+  };
+
+  return (
+    <Box sx={{ mt: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Typography variant="body2" sx={{ fontWeight: 'medium', color: 'text.secondary' }}>
+          Password Strength:
+        </Typography>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            fontWeight: 'bold',
+            color: getStrengthColor()
+          }}
+        >
+          {strength}
+        </Typography>
+      </Box>
+      <LinearProgress
+        variant="determinate"
+        value={getStrengthValue()}
+        sx={{
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: alpha(theme.palette.grey[300], 0.3),
+          '& .MuiLinearProgress-bar': {
+            backgroundColor: getStrengthColor(),
+            borderRadius: 4,
+          }
+        }}
+      />
+    </Box>
+  );
+};
+
+// Requirements checklist component
+const PasswordRequirements = ({ requirements, theme }) => {
+  const requirementsList = [
+    { key: 'minLength', text: 'At least 8 characters long' },
+    { key: 'hasUppercase', text: 'Include uppercase letters (A-Z)' },
+    { key: 'hasLowercase', text: 'Include lowercase letters (a-z)' },
+    { key: 'hasNumber', text: 'Include at least one number (0-9)' },
+    { key: 'hasSpecialChar', text: 'Include at least one special character (!@#$%^&*)' }
+  ];
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        mt: 2,
+        bgcolor: alpha(theme.palette.info.main, 0.05),
+        border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`
+      }}
+    >
+      <CardContent sx={{ p: 2 }}>
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Info sx={{ color: theme.palette.info.main, fontSize: 18 }} />
+          Password Requirements
+        </Typography>
+        <List dense sx={{ py: 0 }}>
+          {requirementsList.map(({ key, text }) => (
+            <ListItem key={key} sx={{ py: 0.25, px: 0 }}>
+              <ListItemIcon sx={{ minWidth: 28 }}>
+                {requirements[key] ? (
+                  <CheckCircle sx={{ fontSize: 16, color: theme.palette.success.main }} />
+                ) : (
+                  <Cancel sx={{ fontSize: 16, color: theme.palette.grey[400] }} />
+                )}
+              </ListItemIcon>
+              <ListItemText 
+                primary={text}
+                primaryTypographyProps={{
+                  variant: 'body2',
+                  sx: { 
+                    color: requirements[key] ? theme.palette.success.main : theme.palette.text.secondary 
+                  }
+                }}
+              />
+            </ListItem>
+          ))}
+        </List>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Profile = () => {
   const { user, isLoading } = useSelector((state) => state.auth);
@@ -99,6 +296,11 @@ const Profile = () => {
   
   // Loading states for different form submissions
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Password validation
+  const newPasswordValidation = usePasswordValidation(passwordInfo.newPassword);
+  const confirmPasswordMatch = passwordInfo.newPassword && passwordInfo.confirmPassword && 
+    passwordInfo.newPassword === passwordInfo.confirmPassword;
 
   const charityCategories = [
     { value: 'EDUCATION', label: 'Education' },
@@ -238,8 +440,20 @@ const Profile = () => {
     setIsSubmitting(true);
     
     // Validate password inputs
+    if (!newPasswordValidation.isValid) {
+      toast.error('New password does not meet security requirements');
+      setIsSubmitting(false);
+      return;
+    }
+
     if (passwordInfo.newPassword !== passwordInfo.confirmPassword) {
       toast.error('New passwords do not match');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (passwordInfo.currentPassword === passwordInfo.newPassword) {
+      toast.error('New password must be different from current password');
       setIsSubmitting(false);
       return;
     }
@@ -265,12 +479,16 @@ const Profile = () => {
     }
   };
   
-  const handleCharitySubmit = async (e) => {
+const handleCharitySubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
     try {
-      await dispatch(updateCharityDetails(charityInfo)).unwrap();
+      const updatePromise = dispatch(updateCharityDetails(charityInfo)).unwrap();
+      const delayPromise = new Promise(resolve => setTimeout(resolve, 800));
+      
+      await Promise.all([updatePromise, delayPromise]);
+      
       toast.success('Charity information updated successfully');
     } catch (error) {
       const message = error.response?.data?.message || error.message || 'An error occurred';
@@ -312,6 +530,11 @@ const Profile = () => {
     'Change Password',
     user?.role === 'charity' ? 'Charity Details' : 'Donor Preferences'
   ];
+
+  // Check if password form is valid
+  const isPasswordFormValid = passwordInfo.currentPassword && 
+    newPasswordValidation.isValid && 
+    confirmPasswordMatch;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff' }}>
@@ -527,8 +750,7 @@ const Profile = () => {
                 </Box>
               </Box>
             )}
-
-            {/* Password Panel */}
+            {/* Password Panel - ENHANCED VERSION */}
             {activeTab === 1 && (
               <Box component="form" onSubmit={handlePasswordSubmit}>
                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -580,6 +802,12 @@ const Profile = () => {
                       value={passwordInfo.newPassword}
                       onChange={handlePasswordChange}
                       required
+                      error={passwordInfo.newPassword && !newPasswordValidation.isValid}
+                      helperText={
+                        passwordInfo.newPassword && !newPasswordValidation.isValid
+                          ? 'Password does not meet requirements'
+                          : ''
+                      }
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -603,6 +831,15 @@ const Profile = () => {
                         }
                       }}
                     />
+                    
+                    {/* Password Strength Indicator */}
+                    {passwordInfo.newPassword && (
+                      <PasswordStrengthIndicator 
+                        strength={newPasswordValidation.strength}
+                        isValid={newPasswordValidation.isValid}
+                        theme={theme}
+                      />
+                    )}
                   </Grid>
                   
                   <Grid item xs={12}>
@@ -614,6 +851,20 @@ const Profile = () => {
                       value={passwordInfo.confirmPassword}
                       onChange={handlePasswordChange}
                       required
+                      error={
+                        passwordInfo.confirmPassword && 
+                        passwordInfo.newPassword && 
+                        !confirmPasswordMatch
+                      }
+                      helperText={
+                        passwordInfo.confirmPassword && 
+                        passwordInfo.newPassword && 
+                        !confirmPasswordMatch
+                          ? 'Passwords do not match'
+                          : passwordInfo.confirmPassword && confirmPasswordMatch
+                          ? 'Passwords match!'
+                          : ''
+                      }
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -622,12 +873,21 @@ const Profile = () => {
                         ),
                         endAdornment: (
                           <InputAdornment position="end">
-                            <IconButton
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              edge="end"
-                            >
-                              {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {passwordInfo.confirmPassword && passwordInfo.newPassword && (
+                                confirmPasswordMatch ? (
+                                  <CheckCircle sx={{ color: theme.palette.success.main, fontSize: 20 }} />
+                                ) : (
+                                  <Warning sx={{ color: theme.palette.warning.main, fontSize: 20 }} />
+                                )
+                              )}
+                              <IconButton
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                edge="end"
+                              >
+                                {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </Box>
                           </InputAdornment>
                         ),
                       }}
@@ -641,47 +901,23 @@ const Profile = () => {
                 </Grid>
 
                 {/* Password Requirements */}
-                <Card
-                  elevation={0}
-                  sx={{
-                    mt: 3,
-                    bgcolor: alpha(theme.palette.info.main, 0.05),
-                    border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`
-                  }}
-                >
-                  <CardContent sx={{ p: 3 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Info sx={{ color: theme.palette.info.main }} />
-                      Password Requirements
-                    </Typography>
-                    <List dense>
-                      <ListItem sx={{ py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                          <Check sx={{ fontSize: 16, color: theme.palette.success.main }} />
-                        </ListItemIcon>
-                        <ListItemText primary="At least 8 characters long" />
-                      </ListItem>
-                      <ListItem sx={{ py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                          <Check sx={{ fontSize: 16, color: theme.palette.success.main }} />
-                        </ListItemIcon>
-                        <ListItemText primary="Include uppercase and lowercase letters" />
-                      </ListItem>
-                      <ListItem sx={{ py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                          <Check sx={{ fontSize: 16, color: theme.palette.success.main }} />
-                        </ListItemIcon>
-                        <ListItemText primary="Include at least one number" />
-                      </ListItem>
-                      <ListItem sx={{ py: 0.5 }}>
-                        <ListItemIcon sx={{ minWidth: 32 }}>
-                          <Check sx={{ fontSize: 16, color: theme.palette.success.main }} />
-                        </ListItemIcon>
-                        <ListItemText primary="Include at least one special character" />
-                      </ListItem>
-                    </List>
-                  </CardContent>
-                </Card>
+                {passwordInfo.newPassword && (
+                  <PasswordRequirements 
+                    requirements={newPasswordValidation.requirements}
+                    theme={theme}
+                  />
+                )}
+
+                {/* Additional Validation Messages */}
+                {passwordInfo.newPassword && passwordInfo.currentPassword && 
+                passwordInfo.newPassword === passwordInfo.currentPassword && (
+                  <Alert 
+                    severity="warning" 
+                    sx={{ mt: 2, borderRadius: 2 }}
+                  >
+                    New password must be different from your current password
+                  </Alert>
+                )}
 
                 <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   {isSubmitting && (
@@ -697,7 +933,7 @@ const Profile = () => {
                       type="submit"
                       variant="contained"
                       startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <Security />}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || !isPasswordFormValid}
                       sx={{
                         borderRadius: 2,
                         px: 4,
@@ -711,7 +947,6 @@ const Profile = () => {
                 </Box>
               </Box>
             )}
-
             {/* Role-specific Panel */}
             {activeTab === 2 && user && (
               <>
@@ -855,21 +1090,31 @@ const Profile = () => {
                           </Grid>
                         </Grid>
 
-                        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
-                          <Button
-                            type="submit"
-                            variant="contained"
-                            startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <Save />}
-                            disabled={isSubmitting}
-                            sx={{
-                              borderRadius: 2,
-                              px: 4,
-                              py: 1.5,
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            {isSubmitting ? 'Updating...' : 'Update Charity Information'}
-                          </Button>
+                        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          {isSubmitting && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CircularProgress size={20} />
+                              <Typography variant="body2" color="text.secondary">
+                                Updating charity details...
+                              </Typography>
+                            </Box>
+                          )}
+                          <Box sx={{ ml: 'auto' }}>
+                            <Button
+                              type="submit"
+                              variant="contained"
+                              startIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <Save />}
+                              disabled={isSubmitting}
+                              sx={{
+                                borderRadius: 2,
+                                px: 4,
+                                py: 1.5,
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              {isSubmitting ? 'Updating...' : 'Update Charity Information'}
+                            </Button>
+                          </Box>
                         </Box>
                       </>
                     )}

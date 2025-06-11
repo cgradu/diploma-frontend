@@ -201,7 +201,7 @@ useEffect(() => {
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
-      <Grid container spacing={3}>
+      <Grid container direction="column" spacing={3}>
         {/* Charity Selection */}
         <Grid item xs={12}>
           <Card 

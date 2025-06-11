@@ -42,6 +42,17 @@ const donationService = {
       console.error('Error fetching charity donation stats:', error);
       throw error;
     }
+  }, 
+
+  // Get donor dashboard stats
+  getDonorDashboardStats: async () => {
+    try {
+      const response = await axios.get('/donations/donor/dashboard-stats');
+      return response.data.data;
+    } catch (error) {
+      console.error('Error fetching donor dashboard stats:', error);
+      throw error;
+    }
   }
 };
 

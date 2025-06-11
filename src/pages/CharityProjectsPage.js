@@ -3,12 +3,70 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { getCharityById } from '../redux/slices/charitySlice';
-import { getProjectsByCharityId, getProjectStatuses, reset } from '../redux/slices/projectSlice';
+import { getProjectsByCharityId, getProjectStatuses, deleteProject, reset } from '../redux/slices/projectSlice';
+import {
+  Box,
+  Container,
+  Grid,
+  Paper,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  CardActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Chip,
+  Stack,
+  InputAdornment,
+  Alert,
+  LinearProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  useTheme,
+  alpha,
+  Skeleton,
+  Avatar,
+  Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Tooltip
+} from '@mui/material';
+import {
+  Search,
+  VolunteerActivism,
+  Verified,
+  ClearAll,
+  ExpandMore,
+  Visibility,
+  Business,
+  FolderOpen,
+  CheckCircle,
+  Pause,
+  Cancel,
+  PlayArrow,
+  Add,
+  ArrowBack,
+  CalendarToday,
+  Edit,
+  Delete,
+  Warning
+} from '@mui/icons-material';
 import Navbar from '../components/layout/Navbar';
+import EditProjectModal from './EditProjectModal';
+import CreateProjectModal from './CreateProjectModal';
 
 const CharityProjectsPage = () => {
   const { charityId } = useParams();
   const dispatch = useDispatch();
+  const theme = useTheme();
   
   // Get charity and projects from Redux store
   const { 
@@ -17,13 +75,14 @@ const CharityProjectsPage = () => {
     isError: isErrorCharity = false, 
     message: charityMessage = ''
   } = useSelector(state => state.charities || {});
+
   const { 
     projects = [], 
     statuses = [], 
     isLoading: isLoadingProjects = false, 
     isError: isErrorProjects = false, 
     message: projectMessage = '' 
-  } = useSelector(state => state.projects || []);
+  } = useSelector(state => state.projects || {});
   
   const { user } = useSelector(state => state.auth);
   
@@ -31,7 +90,19 @@ const CharityProjectsPage = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [inputSearchTerm, setInputSearchTerm] = useState('');
-  const [debugMode, setDebugMode] = useState(false); // Set debug mode to false by chandefault
+  const [debugMode, setDebugMode] = useState(false);
+  
+  // Delete confirmation dialog state
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    projectId: null,
+    projectTitle: ''
+  });
+
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+
   
   // Reset state when component unmounts
   useEffect(() => {
@@ -69,20 +140,67 @@ const CharityProjectsPage = () => {
     const value = e.target.value;
     console.log('Status filter changed to:', value);
     setStatusFilter(value);
-
-    setSearchTerm(''); // Clear search term when changing status filter
-    setInputSearchTerm(''); // Clear input search term
+    setSearchTerm('');
+    setInputSearchTerm('');
   };
-  
-  // Toggle debug mode
-  const toggleDebugMode = () => {
-    setDebugMode(!debugMode);
+
+  const handleSearchSubmit = () => {
+    setSearchTerm(inputSearchTerm);
+  };
+
+  const clearFilters = () => {
+    setInputSearchTerm('');
+    setSearchTerm('');
+    setStatusFilter('All');
   };
   
   // Check if user is charity owner
   const isCharityOwner = () => {
     if (!user || !charity) return false;
-    return user.id === charity.userId || user.role === 'admin';
+    console.log('Checking if user is charity owner:', charity.id , user.managedCharity.id);
+    return user.managedCharity.id === charity.id || user.role === 'admin';
+  };
+
+// Alternative version using Redux action (if you have a delete action)
+const handleDeleteProject = async (projectId) => {
+  try {
+    console.log('Deleting project with ID:', projectId);
+    
+    // If you have a deleteProject action in your Redux slice
+    const result = await dispatch(deleteProject(projectId));
+    
+    if (result.type.endsWith('/fulfilled')) {
+      console.log('Delete successful');
+      
+      // Refresh projects list
+      dispatch(getProjectsByCharityId({ charityId }));
+      
+      // Close dialog
+      setDeleteDialog({ open: false, projectId: null, projectTitle: '' });
+    } else {
+      console.error('Delete failed:', result);
+    }
+  } catch (error) {
+    console.error('Error deleting project:', error);
+  }
+};
+
+  // Open delete confirmation dialog
+  const openDeleteDialog = (projectId, projectTitle) => {
+    setDeleteDialog({
+      open: true,
+      projectId,
+      projectTitle
+    });
+  };
+
+  // Close delete confirmation dialog
+  const closeDeleteDialog = () => {
+    setDeleteDialog({
+      open: false,
+      projectId: null,
+      projectTitle: ''
+    });
   };
   
   // Derive loading and error states for UI
@@ -113,459 +231,1128 @@ const CharityProjectsPage = () => {
     }
     return filtered;
   })();
-  
+
+  // Helper functions
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'ACTIVE': return <PlayArrow sx={{ fontSize: 16 }} />;
+      case 'COMPLETED': return <CheckCircle sx={{ fontSize: 16 }} />;
+      case 'PAUSED': return <Pause sx={{ fontSize: 16 }} />;
+      case 'CANCELLED': return <Cancel sx={{ fontSize: 16 }} />;
+      default: return <FolderOpen sx={{ fontSize: 16 }} />;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'ACTIVE': return 'success';
+      case 'COMPLETED': return 'primary';
+      case 'PAUSED': return 'warning';
+      case 'CANCELLED': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('ro-RO', {
+      style: 'currency',
+      currency: 'RON',
+      minimumFractionDigits: 0
+    }).format(amount || 0);
+  };
+
+  const calculateProgress = (current, goal) => {
+    if (!goal) return 0;
+    return Math.min(Math.round((current / goal) * 100), 100);
+  };
+
+  const handleEditClick = (project) => {
+  setSelectedProject(project);
+  setEditModalOpen(true);
+};
+
+const handleEditModalClose = () => {
+  setEditModalOpen(false);
+  setSelectedProject(null);
+};
+
+const handleEditSuccess = () => {
+  // Refresh projects data after successful edit
+  dispatch(getProjectsByCharityId({ charityId }));
+};
+
+const handleCreateClick = () => {
+  setCreateModalOpen(true);
+};
+
+const handleCreateModalClose = () => {
+  setCreateModalOpen(false);
+};
+
+const handleCreateSuccess = () => {
+  // Refresh projects data after successful creation
+  dispatch(getProjectsByCharityId({ charityId }));
+};
+
+
+  const ProjectCard = ({ project }) => (
+    <Card
+      elevation={0}
+      sx={{
+        width: 400,
+        height: 520,
+        display: 'flex',
+        flexDirection: 'column',
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 2,
+        transition: 'all 0.2s ease-in-out',
+        margin: '0 auto',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: theme.shadows[8],
+          borderColor: theme.palette.primary.main
+        }
+      }}
+    >
+      {/* Project Header */}
+      <Box
+        sx={{
+          height: 120,
+          bgcolor: alpha(theme.palette.primary.main, 0.05),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          flexShrink: 0
+        }}
+      >
+        <FolderOpen sx={{ fontSize: 48, color: alpha(theme.palette.primary.main, 0.3) }} />
+        
+        {/* Status Badge */}
+        <Chip
+          icon={getStatusIcon(project.status)}
+          label={project.status}
+          size="small"
+          color={getStatusColor(project.status)}
+          sx={{
+            position: 'absolute',
+            top: 6,
+            left: 6,
+            fontWeight: 'bold',
+            fontSize: '0.6rem',
+            height: 18
+          }}
+        />
+        
+        {/* Days Remaining Badge */}
+        {project.daysRemaining !== null && project.status === 'ACTIVE' && (
+          <Chip
+            icon={<CalendarToday sx={{ fontSize: 12 }} />}
+            label={`${project.daysRemaining}d`}
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              bgcolor: theme.palette.info.main,
+              color: '#ffffff',
+              fontWeight: 'bold',
+              fontSize: '0.7rem',
+              height: 24
+            }}
+          />
+        )}
+
+        {/* Management Buttons for Charity Owners */}
+        {isCharityOwner() && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              display: 'flex',
+              gap: 0.5
+            }}
+          >
+           <Tooltip title="Edit Project">
+            <IconButton
+              onClick={() => handleEditClick(project)} // CHANGED: from Link to onClick
+              size="small"
+              sx={{
+                bgcolor: 'rgba(255, 255, 255, 0.9)',
+                '&:hover': { bgcolor: 'rgba(255, 255, 255, 1)' }
+              }}
+            >
+              <Edit sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+
+            <Tooltip title="Delete Project">
+              <IconButton
+                onClick={() => openDeleteDialog(project.id, project.title)}
+                size="small"
+                sx={{
+                  bgcolor: 'rgba(255, 255, 255, 0.9)',
+                  color: theme.palette.error.main,
+                  '&:hover': { 
+                    bgcolor: 'rgba(255, 255, 255, 1)',
+                    color: theme.palette.error.dark
+                  }
+                }}
+              >
+                <Delete sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
+      </Box>
+
+      <CardContent sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
+        {/* Project Title */}
+        <Typography
+          variant="subtitle1"
+          component="h3"
+          sx={{
+            fontWeight: 'bold',
+            mb: 1,
+            lineHeight: 1.2,
+            height: '2.4em',
+            display: '-webkit-box',
+            '-webkit-line-clamp': 2,
+            '-webkit-box-orient': 'vertical',
+            overflow: 'hidden',
+            wordBreak: 'break-word'
+          }}
+        >
+          {project.title}
+        </Typography>
+
+        {/* Project Description */}
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            mb: 2.25,
+            height: '3.6em',
+            display: '-webkit-box',
+            '-webkit-line-clamp': 3,
+            '-webkit-box-orient': 'vertical',
+            overflow: 'hidden',
+            lineHeight: 1.2,
+            fontSize: '1rem',
+            wordBreak: 'break-word'
+          }}
+        >
+          {project.description}
+        </Typography>
+
+        {/* Progress Section */}
+        <Box sx={{ mb: 1.5 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'medium' }}>
+              Progress
+            </Typography>
+            <Typography variant="caption" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+              {calculateProgress(project.currentAmount, project.goal)}%
+            </Typography>
+          </Box>
+          <LinearProgress
+            variant="determinate"
+            value={calculateProgress(project.currentAmount, project.goal)}
+            sx={{
+              height: 6,
+              borderRadius: 3,
+              bgcolor: alpha(theme.palette.primary.main, 0.1),
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 3,
+                bgcolor: theme.palette.primary.main
+              }
+            }}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+            <Typography variant="caption" color="text.secondary">
+              {formatCurrency(project.currentAmount)}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {formatCurrency(project.goal)}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Project Metrics */}
+        <Box sx={{ mt: 'auto', mb: 1 }}>
+          <Grid container spacing={1.5}>
+            <Grid item xs={6}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.2,
+                  textAlign: 'center',
+                  bgcolor: alpha(theme.palette.primary.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                  borderRadius: 1
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontSize: '0.9rem' }}>
+                  {project.donationsCount || 0}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  Donors
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={4}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.2,
+                  textAlign: 'center',
+                  bgcolor: alpha(theme.palette.secondary.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.secondary.main, 0.1)}`,
+                  borderRadius: 1
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: theme.palette.secondary.main, fontSize: '0.9rem' }}>
+                  {project.progressPercentage || 0}%
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  Funded
+                </Typography>
+              </Paper>
+            </Grid>
+            <Grid item xs={4}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.2,
+                  textAlign: 'center',
+                  bgcolor: alpha(theme.palette.success.main, 0.05),
+                  border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`,
+                  borderRadius: 1
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: theme.palette.success.main, fontSize: '0.9rem' }}>
+                  {project.daysRemaining || '∞'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  Days
+                </Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Box>
+      </CardContent>
+
+      {/* Card Actions */}
+      <CardActions sx={{ p: 2.25, pt: 0, justifyContent: 'space-between', flexShrink: 0 }}>
+        <Button
+          component={Link}
+          to={`/projects/${project.id}`}
+          variant="outlined"
+          size="medium"
+          startIcon={<Visibility />}
+          sx={{
+            borderRadius: 1,
+            textTransform: 'none',
+            fontWeight: 'medium',
+            fontSize: '0.875rem',
+            px: 2.25,
+            py: 0.75,
+            minWidth: 'auto'
+          }}
+        >
+          Details
+        </Button>
+        
+        {/* Management Buttons */}
+        {isCharityOwner() ? (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              onClick={() => handleEditClick(project)} // CHANGED: from Link to onClick
+              variant="outlined"
+              size="small"
+              startIcon={<Edit />}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                fontWeight: 'medium',
+                fontSize: '0.75rem',
+                px: 1.5,
+                py: 0.5,
+                minWidth: 'auto'
+              }}
+            >
+              Edit
+            </Button>
+            <Button
+              onClick={() => openDeleteDialog(project.id, project.title)}
+              variant="outlined"
+              size="small"
+              color="error"
+              startIcon={<Delete />}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                fontWeight: 'medium',
+                fontSize: '0.75rem',
+                px: 1.5,
+                py: 0.5,
+                minWidth: 'auto'
+              }}
+            >
+              Delete
+            </Button>
+          </Box>
+        ) : (
+          (!user || user.role !== 'charity') && (
+            <Button
+              component={Link}
+              to={`/donate?projectId=${project.id}&charityId=${charityId}`}
+              variant="contained"
+              size="medium"
+              startIcon={<VolunteerActivism />}
+              disabled={project.status !== 'ACTIVE'}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                px: 2.25,
+                py: 0.75,
+                minWidth: 'auto',
+                bgcolor: project.status === 'ACTIVE' ? theme.palette.secondary.main : undefined,
+                '&:hover': {
+                  bgcolor: project.status === 'ACTIVE' ? theme.palette.secondary.dark : undefined,
+                  transform: project.status === 'ACTIVE' ? 'translateY(-1px)' : 'none',
+                  boxShadow: project.status === 'ACTIVE' ? theme.shadows[4] : undefined
+                }
+              }}
+            >
+              {project.status === 'ACTIVE' ? 'Donate' : 'N/A'}
+            </Button>
+          )
+        )}
+      </CardActions>
+    </Card>
+  );
+
+  const LoadingSkeleton = () => (
+    <Card elevation={0} sx={{ width: 400, height: 480, border: `1px solid ${theme.palette.divider}`, borderRadius: 2, margin: '0 auto' }}>
+      <Skeleton variant="rectangular" height={80} />
+      <CardContent sx={{ p: 2 }}>
+        <Skeleton variant="text" height={20} width="85%" sx={{ mb: 1 }} />
+        <Skeleton variant="text" height={14} width="90%" />
+        <Skeleton variant="text" height={14} width="75%" sx={{ mb: 1.5 }} />
+        <Skeleton variant="text" height={12} width="60%" sx={{ mb: 0.5 }} />
+        <Skeleton variant="rectangular" height={6} sx={{ mb: 0.5 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+          <Skeleton variant="text" width="35%" />
+          <Skeleton variant="text" width="25%" />
+        </Box>
+        <Grid container spacing={1}>
+          {[...Array(3)].map((_, index) => (
+            <Grid item xs={4} key={index}>
+              <Skeleton variant="rectangular" height={45} />
+            </Grid>
+          ))}
+        </Grid>
+      </CardContent>
+      <CardActions sx={{ justifyContent: 'space-between', p: 1.5, pt: 0 }}>
+        <Skeleton variant="rectangular" width={70} height={28} />
+        <Skeleton variant="rectangular" width={80} height={28} />
+      </CardActions>
+    </Card>
+  );
+
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <Box sx={{ minHeight: '100vh', bgcolor: '#ffffff' }}>
       <Navbar />
       
-      {/* Header Banner */}
-      <div className="bg-blue-600 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {charity ? (
-            <>
-              <h1 className="text-3xl font-bold text-white text-center">{charity.name}: Projects</h1>
-              <p className="text-blue-100 text-center mt-2">
-                Browse and support projects by {charity.name}
-              </p>
-            </>
-          ) : (
-            <h1 className="text-3xl font-bold text-white text-center">Charity Projects</h1>
-          )}
-          
-          {/* Search and Filter Section */}
-          <div className="mt-8 max-w-3xl mx-auto">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Search Input */}
-              <div className="flex-grow">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-blue-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    className="block w-full bg-white bg-opacity-20 border-transparent rounded-md py-2 pl-10 pr-3 text-white placeholder-blue-200 focus:outline-none focus:bg-opacity-30 focus:ring-1 focus:ring-blue-400 focus:border-blue-400 sm:text-sm"
-                    placeholder="Search projects by title or description... (press Enter to search)"
-                    value={inputSearchTerm}
-                    onChange={handleSearchChange}
-                    onKeyPress={handleSearchKeyPress}
-                  />
-                </div>
-              </div>
-              
-              {/* Status Filter */}
-              <div className="sm:w-64">
-                <select
-                  className="block w-full bg-white bg-opacity-20 border-transparent rounded-md py-2 pl-3 pr-10 text-white focus:outline-none focus:bg-opacity-30 focus:ring-1 focus:ring-blue-400 focus:border-blue-400 sm:text-sm"
-                  value={statusFilter}
-                  onChange={handleStatusChange}
-                >
-                  <option value="All" className="text-gray-900">All Statuses</option>
-                  {statuses && statuses.length > 0 && (
-                    statuses.map((status) => (
-                      <option 
-                        key={status} 
-                        value={status}
-                        className="text-gray-900"
-                      >
-                        {status.replace('_', ' ')}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-              
-              {/* Search button */}
-              <div className="sm:w-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm(inputSearchTerm);
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onClose={closeDeleteDialog}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Warning color="error" />
+          Confirm Delete Project
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the project "{deleteDialog.projectTitle}"?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            This action cannot be undone. If the project has donations, it will be cancelled instead of deleted.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDeleteDialog}>Cancel</Button>
+          <Button 
+            onClick={() => handleDeleteProject(deleteDialog.projectId)}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Hero Section */}
+      <Box
+        sx={{
+          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+          color: '#ffffff',
+          py: 8
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
+            {charity ? (
+              <>
+                <Typography
+                  variant="h3"
+                  component="h1"
+                  sx={{
+                    fontWeight: 'bold',
+                    mb: 2,
+                    fontSize: { xs: '2rem', md: '2.5rem' }
                   }}
-                  className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  {charity.name} Projects
+                </Typography>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    opacity: 0.9,
+                    maxWidth: '600px',
+                    mx: 'auto',
+                    lineHeight: 1.6
+                  }}
+                >
+                  Browse and support projects by {charity.name}
+                </Typography>
+              </>
+            ) : (
+              <Typography
+                variant="h3"
+                component="h1"
+                sx={{
+                  fontWeight: 'bold',
+                  mb: 2,
+                  fontSize: { xs: '2rem', md: '2.5rem' }
+                }}
+              >
+                Charity Projects
+              </Typography>
+            )}
+          </Box>
+
+          {/* Search and Filter Section */}
+          <Paper
+            elevation={8}
+            sx={{
+              p: { xs: 3, sm: 4, md: 6 },
+              borderRadius: 3,
+              bgcolor: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              width: '100%'
+            }}
+          >
+            <Stack 
+              direction={{ xs: 'column', md: 'row' }} 
+              spacing={{ xs: 2, sm: 3, md: 4 }}
+              sx={{ alignItems: 'stretch' }}
+            >
+              {/* Search Input */}
+              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 60%' } }}>
+                <TextField
+                  fullWidth
+                  placeholder="Search projects by title or description..."
+                  value={inputSearchTerm}
+                  onChange={handleSearchChange}
+                  onKeyPress={handleSearchKeyPress}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search sx={{ color: theme.palette.action.active, fontSize: { xs: 20, sm: 24, md: 28 } }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      height: { xs: '56px', sm: '60px', md: '68px' },
+                      fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                    }
+                  }}
+                />
+              </Box>
+
+              {/* Status Filter */}
+              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 25%' } }}>
+                <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Status"
+                    onChange={handleStatusChange}
+                    sx={{
+                      borderRadius: 2,
+                      height: { xs: '56px', sm: '60px', md: '68px' },
+                      fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                    }}
+                  >
+                    <MenuItem value="All">All Statuses</MenuItem>
+                    {statuses && statuses.length > 0 && (
+                      statuses.map((status) => (
+                        <MenuItem key={status} value={status}>
+                          {status.replace('_', ' ')}
+                        </MenuItem>
+                      ))
+                    )}
+                  </Select>
+                </FormControl>
+              </Box>
+
+              {/* Search Button */}
+              <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 15%' } }}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  onClick={handleSearchSubmit}
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 'bold',
+                    height: { xs: '56px', sm: '60px', md: '68px' },
+                    fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' }
+                  }}
                 >
                   Search
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          {/* Debug Mode Toggle */}
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={toggleDebugMode}
-              className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              {debugMode ? 'Hide Debug Info' : 'Show Debug Info'}
-            </button>
-          </div>
-          
-          {/* Add Project Button for charity owners */}
-          {isCharityOwner() && (
-            <div className="mt-4 flex justify-center">
-              <Link
-                to={`/dashboard/projects/create?charityId=${charity?.id}`}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                </Button>
+              </Box>
+            </Stack>
+
+            {/* Active Filters */}
+            {(searchTerm || statusFilter !== 'All') && (
+              <Box sx={{ 
+                mt: { xs: 3, sm: 4, md: 5 }, 
+                pt: { xs: 2, sm: 3 }, 
+                borderTop: `1px solid ${theme.palette.divider}`
+              }}>
+                <Stack 
+                  direction="row" 
+                  spacing={2} 
+                  alignItems="center" 
+                  flexWrap="wrap" 
+                  useFlexGap
+                >
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                    Active filters:
+                  </Typography>
+                  {searchTerm && (
+                    <Chip
+                      label={`Search: "${searchTerm}"`}
+                      onDelete={() => {
+                        setSearchTerm('');
+                        setInputSearchTerm('');
+                      }}
+                      size="medium"
+                      color="primary"
+                    />
+                  )}
+                  {statusFilter !== 'All' && (
+                    <Chip
+                      label={`Status: ${statusFilter}`}
+                      onDelete={() => setStatusFilter('All')}
+                      size="medium"
+                      color="primary"
+                    />
+                  )}
+                  <Button
+                    startIcon={<ClearAll />}
+                    onClick={clearFilters}
+                    size="medium"
+                  >
+                    Clear All
+                  </Button>
+                </Stack>
+              </Box>
+            )}
+
+            {/* Navigation Buttons */}
+            <Box sx={{ 
+              mt: { xs: 3, sm: 4 }, 
+              pt: { xs: 2, sm: 3 }, 
+              borderTop: `1px solid ${theme.palette.divider}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 2
+            }}>
+              <Button
+                component={Link}
+                to={charity ? `/charities/${charity.id}` : '/charities'}
+                variant="outlined"
+                startIcon={<ArrowBack />}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 'medium',
+                  bgcolor: 'rgba(255, 255, 255, 0.9)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 1)'
+                  }
+                }}
               >
-                <svg className="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Add New Project
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-      
+                Back to {charity ? 'Charity Profile' : 'Charities'}
+              </Button>
+
+              {isCharityOwner() && (
+                <Button
+                  onClick={handleCreateClick} // CHANGED: from Link to onClick
+                  variant="contained"
+                  startIcon={<Add />}
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    bgcolor: theme.palette.success.main,
+                    '&:hover': {
+                      bgcolor: theme.palette.success.dark
+                    }
+                  }}
+                >
+                  Add New Project
+                </Button>
+              )}
+            </Box>
+          </Paper>
+        </Container>
+      </Box>
+
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Debug info */}
-        {debugMode && (
-          <div className="bg-gray-100 p-4 mb-6 rounded border border-gray-300">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-bold text-gray-700">Debug Information</h3>
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">
-                Development Mode
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <div className="mb-1"><span className="font-semibold">Loading:</span> {isLoading ? '✓' : '✗'}</div>
-                <div className="mb-1"><span className="font-semibold">Error:</span> {isError ? '✓' : '✗'}</div>
-                <div className="mb-1"><span className="font-semibold">Error Message:</span> {errorMessage || 'None'}</div>
-                <div className="mb-1"><span className="font-semibold">Projects from API:</span> {projects?.length || 0}</div>
-                <div className="mb-1"><span className="font-semibold">Projects Array Type:</span> {Array.isArray(projects) ? 'Array' : typeof projects}</div>
-                <div className="mb-1"><span className="font-semibold">Filtered Projects:</span> {filteredProjects?.length || 0}</div>
-              </div>
-              <div>
-                <div className="mb-1"><span className="font-semibold">Charity ID:</span> {charityId}</div>
-                <div className="mb-1"><span className="font-semibold">Status Filter:</span> {statusFilter}</div>
-                <div className="mb-1"><span className="font-semibold">Search Term:</span> {searchTerm || 'None'}</div>
-                <div className="mb-1"><span className="font-semibold">Is Owner:</span> {isCharityOwner() ? '✓' : '✗'}</div>
-                <div className="mb-1"><span className="font-semibold">Available Statuses:</span> {statuses?.join(', ') || 'None'}</div>
-              </div>
-            </div>
-            
-            <div className="mt-3">
-              <div className="font-semibold mb-1">Redux State Structure:</div>
-              <div className="bg-white p-2 rounded mb-2">
-                <pre className="text-xs overflow-auto">{JSON.stringify({ charity: !!charity, projects: Array.isArray(projects), statuses }, null, 2)}</pre>
-              </div>
-            </div>
-            
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <details>
-                <summary className="font-semibold text-gray-700 cursor-pointer">Raw Project Data (click to expand)</summary>
-                <pre className="mt-2 text-xs overflow-auto max-h-60 bg-gray-50 p-2 rounded">
-                  {JSON.stringify(projects || [], null, 2)}
-                </pre>
-              </details>
-            </div>
-          </div>
-        )}
-        
-        {/* Charity Info Summary (if charity is loaded) */}
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        {/* Charity Info Summary */}
         {charity && !isLoading && (
-          <div className="bg-white shadow rounded-lg p-6 mb-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{charity.name}</h2>
-                <div className="flex items-center mt-2">
-                  <span className="px-2 py-1 text-xs font-semibold text-blue-600 bg-blue-100 rounded-full">
-                    {charity.category}
-                  </span>
-                  <span className="ml-3 text-sm text-gray-500 flex items-center">
-                    <svg className="h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Verified
-                  </span>
-                </div>
-              </div>
+          <Paper
+            elevation={2}
+            sx={{
+              p: 2.5,
+              mb: 4,
+              borderRadius: 2,
+              border: `1px solid ${theme.palette.divider}`
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Avatar
+                sx={{
+                  width: 48,
+                  height: 48,
+                  bgcolor: theme.palette.primary.main,
+                  mr: 2
+                }}
+              >
+                <Business sx={{ fontSize: 24 }} />
+              </Avatar>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                  {charity.name}
+                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Chip
+                    label={charity.category}
+                    color="primary"
+                    size="small"
+                    sx={{ fontWeight: 'medium', fontSize: '0.75rem' }}
+                  />
+                  <Chip
+                    icon={<Verified sx={{ fontSize: 14 }} />}
+                    label="Verified"
+                    color="success"
+                    size="small"
+                    sx={{ fontWeight: 'medium', fontSize: '0.75rem' }}
+                  />
+                </Stack>
+              </Box>
+              {(!user || user.role !== 'charity') && (
+              <Button
+                component={Link}
+                to={`/donate?charityId=${charity.id}`}
+                variant="contained"
+                size="medium"
+                startIcon={<VolunteerActivism />}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 'bold',
+                  px: 3,
+                  py: 1,
+                  bgcolor: theme.palette.secondary.main,
+                  '&:hover': {
+                    bgcolor: theme.palette.secondary.dark
+                  }
+                }}
+              >
+                Donate
+              </Button>
+              )}
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            {/* Summary Statistics */}
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, mb: 0.5 }}>
+                    {projects?.length || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Projects
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.success.main, mb: 0.5 }}>
+                    {projects?.filter(p => p.status === 'ACTIVE').length || 0}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Active Projects
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.secondary.main, mb: 0.5 }}>
+                    {formatCurrency(projects?.reduce((sum, project) => sum + (project.goal || 0), 0) || 0)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Funding Goal
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        )}
+
+        {/* Debug Panel */}
+        {user?.role === 'admin' && (
+          <Accordion sx={{ mb: 4 }}>
+            <AccordionSummary expandIcon={<ExpandMore />}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                🔧 Debug Information
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body2">
+                    <strong>Loading:</strong> {isLoading ? '✓' : '✗'}<br/>
+                    <strong>Error:</strong> {isError ? '✓' : '✗'}<br/>
+                    <strong>Projects from API:</strong> {projects?.length || 0}<br/>
+                    <strong>Filtered Projects:</strong> {filteredProjects?.length || 0}<br/>
+                    <strong>Projects Array Type:</strong> {Array.isArray(projects) ? 'Array' : typeof projects}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="body2">
+                    <strong>Charity ID:</strong> {charityId}<br/>
+                    <strong>Status Filter:</strong> {statusFilter}<br/>
+                    <strong>Search Term:</strong> {searchTerm || 'None'}<br/>
+                    <strong>Is Owner:</strong> {isCharityOwner() ? '✓' : '✗'}<br/>
+                    <strong>Available Statuses:</strong> {statuses?.join(', ') || 'None'}
+                  </Typography>
+                </Grid>
+              </Grid>
               
-              <div className="mt-4 md:mt-0 flex space-x-3">
-                <Link 
-                  to={`/charities/${charity.id}`}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                  </svg>
-                  Charity Profile
-                </Link>
-                
-                <Link
-                  to={`/donation?charityId=${charity.id}`}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg className="h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-                    <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
-                  </svg>
-                  Donate to Charity
-                </Link>
-              </div>
-            </div>
-            
-            {/* Summary stats */}
-            <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
-              <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
-                      <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Total Projects
-                        </dt>
-                        <dd className="flex items-baseline">
-                          <div className="text-2xl font-semibold text-gray-900">
-                            {projects?.length || 0}
-                          </div>
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 bg-green-500 rounded-md p-3">
-                      <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Active Projects
-                        </dt>
-                        <dd className="flex items-baseline">
-                          <div className="text-2xl font-semibold text-gray-900">
-                            {projects?.filter(p => p.status === 'ACTIVE').length || 0}
-                          </div>
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 bg-purple-500 rounded-md p-3">
-                      <svg className="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Total Funding Goal
-                        </dt>
-                        <dd className="flex items-baseline">
-                          <div className="text-2xl font-semibold text-gray-900">
-                            {new Intl.NumberFormat('ro-RO', {
-                              style: 'currency',
-                              currency: 'RON',
-                              minimumFractionDigits: 0
-                            }).format(projects?.reduce((sum, project) => sum + (project.goal || 0), 0) || 0)}
-                          </div>
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  Redux State Structure:
+                </Typography>
+                <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                  <Typography variant="body2" component="pre" sx={{ fontSize: '0.75rem', overflow: 'auto' }}>
+                    {JSON.stringify({ charity: !!charity, projects: Array.isArray(projects), statuses }, null, 2)}
+                  </Typography>
+                </Paper>
+              </Box>
+              
+              <Accordion sx={{ mt: 2 }}>
+                <AccordionSummary expandIcon={<ExpandMore />}>
+                  <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                    Raw Project Data (click to expand)
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Paper sx={{ p: 2, bgcolor: 'grey.50', maxHeight: 240, overflow: 'auto' }}>
+                    <Typography variant="body2" component="pre" sx={{ fontSize: '0.7rem' }}>
+                      {JSON.stringify(projects || [], null, 2)}
+                    </Typography>
+                  </Paper>
+                </AccordionDetails>
+              </Accordion>
+            </AccordionDetails>
+          </Accordion>
         )}
-        
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        )}
-        
+
         {/* Error State */}
         {isError && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 my-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{errorMessage || 'Failed to load data. Please try again later.'}</p>
-              </div>
-            </div>
-          </div>
+          <Alert
+            severity="error"
+            sx={{
+              mb: 4,
+              borderRadius: 2,
+              '& .MuiAlert-message': { width: '100%' }
+            }}
+          >
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+              Error Loading Projects
+            </Typography>
+            <Typography variant="body2">
+              {errorMessage || 'Failed to load projects. Please try again later.'}
+            </Typography>
+          </Alert>
         )}
-        
+
+        {/* Loading State */}
+        {isLoading && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'flex-start' }}>
+            {[...Array(6)].map((_, index) => (
+              <LoadingSkeleton key={index} />
+            ))}
+          </Box>
+        )}
+
         {/* No Results State */}
         {!isLoading && (!filteredProjects || filteredProjects.length === 0) && (
-          <div className="text-center py-12 bg-white shadow rounded-lg">
-            <svg className="mx-auto h-12 w-12 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No projects found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {statusFilter !== 'All' ? `No projects with status "${statusFilter}" found.` : `This charity doesn't have any projects yet.`}
-            </p>
-            <div className="mt-6">
+          <Paper
+            elevation={0}
+            sx={{
+              p: 6,
+              textAlign: 'center',
+              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 3
+            }}
+          >
+            <Box sx={{ mb: 3 }}>
+              <FolderOpen sx={{ fontSize: 64, color: theme.palette.action.disabled }} />
+            </Box>
+            <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
+              No projects found
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+              {statusFilter !== 'All' 
+                ? `No projects with status "${statusFilter}" found.` 
+                : `This charity doesn't have any projects yet.`
+              }
+            </Typography>
+            <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap">
               {statusFilter !== 'All' && (
-                <button
-                  type="button"
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                <Button
+                  variant="contained"
+                  startIcon={<ClearAll />}
                   onClick={() => setStatusFilter('All')}
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 'bold',
+                    px: 4
+                  }}
                 >
                   Show all projects
-                </button>
+                </Button>
               )}
               {isCharityOwner() && (
-                <Link
-                  to={`/dashboard/projects/create?charityId=${charity?.id}`}
-                  className="inline-flex items-center px-4 py-2 ml-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                <Button
+                  onClick={handleCreateClick} // CHANGED: from Link to onClick
+                  variant="contained"
+                  startIcon={<Add />}
+                  sx={{
+                    borderRadius: 2,
+                    fontWeight: 'bold',
+                    px: 4,
+                    bgcolor: theme.palette.success.main,
+                    '&:hover': {
+                      bgcolor: theme.palette.success.dark
+                    }
+                  }}
                 >
                   Create first project
-                </Link>
+                </Button>
               )}
-            </div>
-          </div>
+            </Stack>
+          </Paper>
         )}
-        
-        {/* Display Projects section with clear visual indication */}
-        <div className="border-t-4 border-blue-500 pt-2 mb-4">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Projects List ({filteredProjects?.length || 0})</h2>
-          
-          {/* Explicit check for filtered projects */}
-          {!isLoading && filteredProjects && filteredProjects.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        {/* Projects Grid */}
+        {!isLoading && filteredProjects && filteredProjects.length > 0 && (
+          <>
+            {/* Results Count */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 1 }}>
+                {filteredProjects.length} Project{filteredProjects.length !== 1 ? 's' : ''} Found
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {statusFilter !== 'All' && `Filtered by status: ${statusFilter}`}
+                {searchTerm && ` • Search: "${searchTerm}"`}
+              </Typography>
+            </Box>
+
+            {/* Projects Grid */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'flex-start', mb: 6 }}>
               {filteredProjects.map((project) => (
-                <div 
-                  key={project.id} 
-                  className="bg-white overflow-hidden shadow rounded-lg transition-all duration-300 hover:shadow-lg hover:transform hover:-translate-y-1"
-                >
-                  {/* Project card content - simplified to show essential info */}
-                  <div className="p-5">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">{project.title}</h3>
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-3">{project.description}</p>
-                    
-                    {/* Status indicator */}
-                    <div className="mb-3">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        project.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                        project.status === 'COMPLETED' ? 'bg-blue-100 text-blue-800' :
-                        project.status === 'PAUSED' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {project.status}
-                      </span>
-                    </div>
-                    
-                    {/* Action buttons */}
-                    <div className="flex justify-between mt-4">
-                      <Link 
-                        to={`/projects/${project.id}`}
-                        className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
-                      >
-                        View Details
-                        <svg className="ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </Link>
-                      <Link
-                        to={`/donation?projectId=${project.id}&charityId=${charityId}`}
-                        className={`inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white 
-                        ${project.status === 'ACTIVE' 
-                          ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' 
-                          : 'bg-gray-400 cursor-not-allowed'}`}
-                        onClick={(e) => {
-                          if (project.status !== 'ACTIVE') {
-                            e.preventDefault();
-                          }
-                        }}
-                      >
-                        Donate
-                      </Link>
-                    </div>
-                  </div>
-                </div>
+                <ProjectCard key={project.id} project={project} />
               ))}
-            </div>
-          ) : (
-            !isLoading && (
-              <div className="bg-yellow-50 p-4 rounded-md mb-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">No Projects to Display</h3>
-                    <div className="mt-2 text-sm text-yellow-700">
-                      <p>The projects list is currently empty. This could be because:</p>
-                      <ul className="list-disc list-inside mt-1">
-                        <li>No projects exist for this charity</li>
-                        <li>The data hasn't been loaded correctly</li>
-                        <li>Your current filter settings exclude all projects</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-        
-        {/* Status Filter Pills */}
-        {!isLoading && statuses && statuses.length > 0 && (
-          <div className="mt-8 flex flex-wrap gap-2 justify-center">
-            <button
-              onClick={() => setStatusFilter('All')}
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                statusFilter === 'All'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              All Projects ({projects?.length || 0})
-            </button>
-            
-            {statuses.map(status => {
-              const count = projects?.filter(p => p.status === status).length || 0;
-              if (count > 0) {
-                return (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      statusFilter === status
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    {status.replace('_', ' ')} ({count})
-                  </button>
-                );
-              }
-              return null;
-            })}
-          </div>
+            </Box>
+
+            {/* Status Filter Pills */}
+            {statuses && statuses.length > 0 && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  border: `1px solid ${theme.palette.divider}`,
+                  borderRadius: 3,
+                  textAlign: 'center'
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
+                  Filter by Status
+                </Typography>
+                <Stack 
+                  direction="row" 
+                  spacing={2} 
+                  justifyContent="center"
+                  flexWrap="wrap"
+                  useFlexGap
+                >
+                  <Chip
+                    label={`All Projects (${projects?.length || 0})`}
+                    onClick={() => setStatusFilter('All')}
+                    color={statusFilter === 'All' ? 'primary' : 'default'}
+                    variant={statusFilter === 'All' ? 'filled' : 'outlined'}
+                    sx={{
+                      fontWeight: statusFilter === 'All' ? 'bold' : 'medium',
+                      fontSize: '0.9rem',
+                      height: 36,
+                      cursor: 'pointer',
+                      '&:hover': {
+                        bgcolor: statusFilter === 'All' ? undefined : alpha(theme.palette.primary.main, 0.1)
+                      }
+                    }}
+                  />
+                  
+                  {statuses.map(status => {
+                    const count = projects?.filter(p => p.status === status).length || 0;
+                    if (count > 0) {
+                      return (
+                        <Chip
+                          key={status}
+                          label={`${status.replace('_', ' ')} (${count})`}
+                          onClick={() => setStatusFilter(status)}
+                          color={statusFilter === status ? getStatusColor(status) : 'default'}
+                          variant={statusFilter === status ? 'filled' : 'outlined'}
+                          icon={statusFilter === status ? getStatusIcon(status) : undefined}
+                          sx={{
+                            fontWeight: statusFilter === status ? 'bold' : 'medium',
+                            fontSize: '0.9rem',
+                            height: 36,
+                            cursor: 'pointer',
+                            '&:hover': {
+                              bgcolor: statusFilter === status ? undefined : alpha(theme.palette[getStatusColor(status)].main, 0.1)
+                            }
+                          }}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                </Stack>
+              </Paper>
+            )}
+          </>
         )}
-      </div>
-    </div>
+
+        {/* Call to Action Section */}
+        {!isLoading && charity && (
+          <Paper
+            elevation={0}
+            sx={{
+              mt: 4,
+              p: 3,
+              textAlign: 'center',
+              bgcolor: alpha(theme.palette.primary.main, 0.05),
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+              borderRadius: 2
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1.5, color: theme.palette.primary.main }}>
+              Support {charity.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, maxWidth: '500px', mx: 'auto' }}>
+              Your donation helps fund these important projects and makes a real difference in the community.
+              Every contribution is tracked transparently on the blockchain.
+            </Typography>
+            <Stack 
+              direction={{ xs: 'column', sm: 'row' }} 
+              spacing={1.5} 
+              justifyContent="center"
+              alignItems="center"
+            >
+              {(user.role === 'donor') && (
+              <Button
+                component={Link}
+                to={`/donate?charityId=${charity.id}`}
+                variant="contained"
+                size="medium"
+                startIcon={<VolunteerActivism />}
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 'bold',
+                  px: 3,
+                  py: 1,
+                  bgcolor: theme.palette.secondary.main,
+                  '&:hover': {
+                    bgcolor: theme.palette.secondary.dark,
+                    transform: 'translateY(-1px)',
+                    boxShadow: theme.shadows[8]
+                  }
+                }}
+              >
+                Donate to Charity
+              </Button>
+              )}
+              <Button
+                component={Link}
+                to={`/charities/${charity.id}`}
+                variant="outlined"
+                size="large"
+                startIcon={<Visibility />}
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 'medium',
+                  px: 3,
+                  py: 1
+                }}
+              >
+                View Profile
+              </Button>
+            </Stack>
+          </Paper>
+        )}
+      </Container>
+      <EditProjectModal
+        open={editModalOpen}
+        onClose={handleEditModalClose}
+        project={selectedProject}
+        onSuccess={handleEditSuccess}
+      />
+      <CreateProjectModal
+        open={createModalOpen}
+        onClose={handleCreateModalClose}
+        charity={charity}
+        onSuccess={handleCreateSuccess}
+      />
+
+    </Box>
   );
 };
 

@@ -366,10 +366,12 @@ const CharityProfilePage = () => {
                 </Box>
 
                 {/* Action Buttons */}
+
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  {(!user || user.role !== 'charity') && (
                   <Button
                     component={Link}
-                    to={`/donation?charityId=${charityId}`}
+                    to={`/donate?charityId=${charityId}`}
                     variant="contained"
                     size="large"
                     startIcon={<VolunteerActivism />}
@@ -389,6 +391,7 @@ const CharityProfilePage = () => {
                   >
                     Donate Now
                   </Button>
+                  )}
                   
                   <Button
                     component={Link}

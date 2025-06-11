@@ -18,7 +18,6 @@ import DonationPage from './pages/DonationPage';
 import DonationHistoryPage from './pages/DonationHistory';
 import DonationDetailPage from './pages/DonationDetailPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
-import EditProjectPage from './pages/EditProjectPage';
 import CharityProjectsPage from './pages/CharityProjectsPage';
 
 // Admin Pages
@@ -102,14 +101,13 @@ const App = () => {
               } 
             />
             <Route 
-              path="/dashboard/projects/edit/:id" 
+              path="/my-donations" 
               element={
-                <PrivateRoute>
-                  <EditProjectPage />
+                <PrivateRoute requiredRole="donor">
+                  <DonationHistoryPage />
                 </PrivateRoute>
               } 
             />
-            
             {/* Admin Routes */}
             <Route 
               path="/admin/*" 

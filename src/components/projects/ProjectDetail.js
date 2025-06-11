@@ -49,7 +49,6 @@ import {
   Edit, 
   Delete, 
   ChevronLeft,
-  Share,
   ContentCopy,
   Description,
   History,
@@ -117,7 +116,7 @@ const ProjectDetail = () => {
   
   // State for UI elements
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [showShareSnackbar, setShowShareSnackbar] = useState(false);
+  const [showCopySnackbar, setShowCopySnackbar] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   
   // Fetch project on mount
@@ -145,12 +144,6 @@ const ProjectDetail = () => {
     setOpenDeleteDialog(false);
     await dispatch(deleteProject(id));
     navigate('/dashboard');
-  };
-  
-  // Handler for sharing project
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    setShowShareSnackbar(true);
   };
   
   // Format currency
@@ -184,7 +177,7 @@ const ProjectDetail = () => {
   // Copy transaction hash to clipboard
   const copyTransactionHash = (hash) => {
     navigator.clipboard.writeText(hash);
-    setShowShareSnackbar(true);
+    setShowCopySnackbar(true);
   };
   
   if (isLoading) {
@@ -695,28 +688,21 @@ const ProjectDetail = () => {
                 )}
               </TabPanel>
               
-              {/* Call to action buttons */}
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, my: 4 }}>
+              {/* Call to action button */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              {(!user || user.role !== 'charity') && (
                 <Button 
                   variant="contained" 
                   color="primary" 
                   size="large" 
                   startIcon={<CreditCard />}
                   component={Link}
-                  to={`/donation?projectId=${project.id}&charityId=${project.Charity?.id}`}
+                  to={`/donate?projectId=${project.id}&charityId=${project.Charity?.id}`}
                   disabled={project.status !== 'ACTIVE' || hasProjectEnded()}
                 >
                   Donate Now
                 </Button>
-                
-                <Button 
-                  variant="outlined" 
-                  color="primary" 
-                  startIcon={<Share />}
-                  onClick={handleShare}
-                >
-                  Share
-                </Button>
+                )}
               </Box>
               
               {/* Edit/Delete buttons for charity owners */}
@@ -725,7 +711,7 @@ const ProjectDetail = () => {
                   <Tooltip title="Edit Project">
                     <IconButton 
                       component={Link}
-                      to={`/dashboard/projects/edit/${project.id}`}
+                      to={`/projects/edit/${project.id}`}
                       color="primary"
                     >
                       <Edit />
@@ -866,6 +852,7 @@ const ProjectDetail = () => {
          </Card>
          
          {/* Call to action card */}
+        {(!user || user.role !== 'charity') && (
          <Card sx={{ mt: 3, display: { xs: 'block', md: 'none' } }}>
            <CardContent>
              <Typography variant="h6" gutterBottom>
@@ -879,26 +866,16 @@ const ProjectDetail = () => {
                  size="large" 
                  startIcon={<CreditCard />}
                  component={Link}
-                 to={`/donation?projectId=${project.id}&charityId=${project.Charity?.id}`}
+                 to={`/donate?projectId=${project.id}&charityId=${project.Charity?.id}`}
                  disabled={project.status !== 'ACTIVE' || hasProjectEnded()}
                  fullWidth
-                 sx={{ mb: 2 }}
                >
                  Donate Now
-               </Button>
-               
-               <Button 
-                 variant="outlined" 
-                 color="primary" 
-                 startIcon={<Share />}
-                 onClick={handleShare}
-                 fullWidth
-               >
-                 Share
                </Button>
              </Box>
            </CardContent>
          </Card>
+        )}
          
          {/* Project status card */}
          <Card sx={{ mt: 3 }}>
@@ -996,11 +973,11 @@ const ProjectDetail = () => {
        </DialogActions>
      </Dialog>
      
-     {/* Snackbar for share confirmation */}
+     {/* Snackbar for copy confirmation */}
      <Snackbar
-       open={showShareSnackbar}
+       open={showCopySnackbar}
        autoHideDuration={3000}
-       onClose={() => setShowShareSnackbar(false)}
+       onClose={() => setShowCopySnackbar(false)}
        message="Copied to clipboard!"
        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
      />

@@ -36,7 +36,10 @@ import {
   Logout,
   Close,
   VolunteerActivism,
-  AdminPanelSettings
+  AdminPanelSettings,
+  History,
+  AccountBalanceWallet,
+  Assignment // Add this icon for projects
 } from '@mui/icons-material';
 
 const Navbar = () => {
@@ -78,41 +81,62 @@ const Navbar = () => {
     return '/dashboard';
   };
 
-  const getDashboardLabel = () => {
-    if (user?.role === 'admin') {
-      return 'Admin Dashboard';
-    }
-    return 'Dashboard';
-  };
-
   const getDashboardIcon = () => {
     if (user?.role === 'admin') {
-      return <AdminPanelSettings />;
+      return <AdminPanelSettings sx={{ fontSize: 28 }} />;
     }
-    return <Dashboard />;
+    return <Dashboard sx={{ fontSize: 28 }} />;
+  };
+
+  // Get charity projects path (assuming you have managedCharity in user object)
+  const getCharityProjectsPath = () => {
+    if (user?.managedCharity?.id) {
+      return `/charities/${user.managedCharity.id}`;
+    }
+    // Fallback - you might need to adjust this based on your data structure
+    return '/my-charity';
   };
 
   const navigationLinks = [
-    { text: 'Home', path: '/', icon: <Home /> },
+    { text: 'Home', path: '/', icon: <Home sx={{ fontSize: 28 }} /> },
     ...(user ? [{ 
-      text: getDashboardLabel(), 
+      text: "Dashboard",
       path: getDashboardPath(), 
       icon: getDashboardIcon() 
     }] : []),
-    { text: 'Explore Charities', path: '/charities', icon: <Explore /> }
+    { text: 'Charities', path: '/charities', icon: <Explore sx={{ fontSize: 28 }} /> }
   ];
 
+  // Enhanced user menu items with role-specific options
   const userMenuItems = user ? [
     { 
-      text: getDashboardLabel(), 
+      text: 'Dashboard', 
       path: getDashboardPath(), 
       icon: getDashboardIcon() 
     },
-    ...(user.role !== 'admin' ? [{ text: 'Profile', path: '/profile', icon: <Person /> }] : []),
-    { text: 'Logout', action: handleLogout, icon: <Logout /> }
+    // Add donation history for donors only
+    ...(user.role === 'donor' ? [{ 
+      text: 'Donation History', 
+      path: '/my-donations', 
+      icon: <History sx={{ fontSize: 28 }} />,
+      description: 'View your donation history & blockchain verification'
+    }] : []),
+    // Add projects management for charity users only
+    ...(user.role === 'charity' ? [{ 
+      text: 'My Charity', 
+      path: getCharityProjectsPath(), 
+      icon: <Assignment sx={{ fontSize: 28 }} />,
+      description: 'Manage your charity projects and donations'
+    }] : []),
+    ...(user.role !== 'admin' ? [{ 
+      text: 'Profile', 
+      path: '/profile', 
+      icon: <Person sx={{ fontSize: 28 }} /> 
+    }] : []),
+    { text: 'Logout', action: handleLogout, icon: <Logout sx={{ fontSize: 28 }} /> }
   ] : [
-    { text: 'Login', path: '/login', icon: <Login /> },
-    { text: 'Sign Up', path: '/register', icon: <PersonAdd /> }
+    { text: 'Login', path: '/login', icon: <Login sx={{ fontSize: 28 }} /> },
+    { text: 'Sign Up', path: '/register', icon: <PersonAdd sx={{ fontSize: 28 }} /> }
   ];
 
   const NavButton = ({ to, children, active = false, onClick }) => (
@@ -123,8 +147,9 @@ const Navbar = () => {
       sx={{
         color: active ? theme.palette.primary.main : theme.palette.text.primary,
         fontWeight: active ? 'bold' : 'medium',
-        px: 2,
-        py: 1,
+        fontSize: '1.125rem',
+        px: 3,
+        py: 1.5,
         borderRadius: 2,
         bgcolor: active ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
         '&:hover': {
@@ -132,7 +157,8 @@ const Navbar = () => {
           color: theme.palette.primary.main
         },
         transition: 'all 0.2s ease-in-out',
-        textTransform: 'none'
+        textTransform: 'none',
+        minHeight: 48
       }}
     >
       {children}
@@ -146,22 +172,22 @@ const Navbar = () => {
       onClose={toggleMobileDrawer}
       PaperProps={{
         sx: {
-          width: 280,
+          width: 320,
           bgcolor: 'background.paper'
         }
       }}
     >
-      <Box sx={{ p: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
             Charitrace
           </Typography>
-          <IconButton onClick={toggleMobileDrawer} size="small">
-            <Close />
+          <IconButton onClick={toggleMobileDrawer} size="large">
+            <Close sx={{ fontSize: 28 }} />
           </IconButton>
         </Box>
         
-        <Divider sx={{ mb: 2 }} />
+        <Divider sx={{ mb: 3 }} />
 
         <List sx={{ p: 0 }}>
           {navigationLinks.map((link) => (
@@ -172,14 +198,18 @@ const Navbar = () => {
               onClick={toggleMobileDrawer}
               sx={{
                 borderRadius: 2,
-                mb: 0.5,
+                mb: 1,
+                py: 1.5,
                 bgcolor: isActive(link.path) ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
                 '&:hover': {
                   bgcolor: alpha(theme.palette.primary.main, 0.08)
                 }
               }}
             >
-              <ListItemIcon sx={{ color: isActive(link.path) ? theme.palette.primary.main : 'inherit' }}>
+              <ListItemIcon sx={{ 
+                color: isActive(link.path) ? theme.palette.primary.main : 'inherit',
+                minWidth: 48
+              }}>
                 {link.icon}
               </ListItemIcon>
               <ListItemText 
@@ -187,7 +217,8 @@ const Navbar = () => {
                 sx={{
                   '& .MuiListItemText-primary': {
                     fontWeight: isActive(link.path) ? 'bold' : 'medium',
-                    color: isActive(link.path) ? theme.palette.primary.main : 'inherit'
+                    color: isActive(link.path) ? theme.palette.primary.main : 'inherit',
+                    fontSize: '1.1rem'
                   }
                 }}
               />
@@ -195,52 +226,54 @@ const Navbar = () => {
           ))}
         </List>
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 3 }} />
 
         {user ? (
           <Box>
-            <Box sx={{ p: 2, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: 2, mb: 2 }}>
+            <Box sx={{ p: 3, bgcolor: alpha(theme.palette.primary.main, 0.05), borderRadius: 2, mb: 3 }}>
               <Stack direction="row" spacing={2} alignItems="center">
                 <Avatar sx={{ 
                   bgcolor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main, 
-                  width: 32, 
-                  height: 32 
+                  width: 48,
+                  height: 48
                 }}>
-                  {user.role === 'admin' ? <AdminPanelSettings fontSize="small" /> : user.name?.charAt(0).toUpperCase()}
+                  {user.role === 'admin' ? <AdminPanelSettings /> : user.name?.charAt(0).toUpperCase()}
                 </Avatar>
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
                     {user.name}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="body2" color="text.secondary">
                     {user.email}
                   </Typography>
                   {user.role === 'admin' && (
                     <Chip 
                       label="Admin" 
-                      size="small" 
+                      size="medium"
                       color="error" 
-                      sx={{ mt: 0.5, fontSize: '0.7rem', height: 18 }} 
+                      sx={{ mt: 0.5, fontSize: '0.8rem', height: 24 }} 
                     />
                   )}
                 </Box>
               </Stack>
             </Box>
 
-            {/* Only show donate button for non-admin users */}
-            {user.role !== 'admin' && (
+            {/* Only show donate button for donors */}
+            {user.role === 'donor' && (
               <Button
                 component={Link}
                 to="/donate"
                 fullWidth
                 variant="contained"
-                startIcon={<VolunteerActivism />}
+                size="large"
+                startIcon={<VolunteerActivism sx={{ fontSize: 24 }} />}
                 onClick={toggleMobileDrawer}
                 sx={{
-                  mb: 2,
-                  py: 1.5,
+                  mb: 3,
+                  py: 2,
                   borderRadius: 2,
                   fontWeight: 'bold',
+                  fontSize: '1.1rem',
                   bgcolor: theme.palette.secondary.main,
                   '&:hover': {
                     bgcolor: theme.palette.secondary.dark
@@ -248,6 +281,62 @@ const Navbar = () => {
                 }}
               >
                 Donate Now
+              </Button>
+            )}
+
+            {/* Add donation history button for donors in mobile */}
+            {user.role === 'donor' && (
+              <Button
+                component={Link}
+                to="/my-donations"
+                fullWidth
+                variant="outlined"
+                size="large"
+                startIcon={<AccountBalanceWallet sx={{ fontSize: 24 }} />}
+                onClick={toggleMobileDrawer}
+                sx={{
+                  mb: 3,
+                  py: 2,
+                  borderRadius: 2,
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                    borderColor: theme.palette.primary.dark
+                  }
+                }}
+              >
+                My Donations
+              </Button>
+            )}
+
+            {/* Add my projects button for charity managers in mobile */}
+            {user.role === 'charity' && (
+              <Button
+                component={Link}
+                to={getCharityProjectsPath()}
+                fullWidth
+                variant="outlined"
+                size="large"
+                startIcon={<Assignment sx={{ fontSize: 24 }} />}
+                onClick={toggleMobileDrawer}
+                sx={{
+                  mb: 3,
+                  py: 2,
+                  borderRadius: 2,
+                  fontWeight: 'bold',
+                  fontSize: '1.1rem',
+                  borderColor: theme.palette.primary.main,
+                  color: theme.palette.primary.main,
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                    borderColor: theme.palette.primary.dark
+                  }
+                }}
+              >
+                My Charity
               </Button>
             )}
 
@@ -263,14 +352,35 @@ const Navbar = () => {
                   }}
                   sx={{
                     borderRadius: 2,
-                    mb: 0.5,
+                    mb: 1,
+                    py: 1.5,
+                    bgcolor: isActive(item.path) ? alpha(theme.palette.primary.main, 0.1) : 'transparent',
                     '&:hover': {
                       bgcolor: alpha(theme.palette.primary.main, 0.08)
                     }
                   }}
                 >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.text} />
+                  <ListItemIcon sx={{ 
+                    minWidth: 48,
+                    color: isActive(item.path) ? theme.palette.primary.main : 'inherit'
+                  }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={item.text}
+                    secondary={item.description}
+                    sx={{
+                      '& .MuiListItemText-primary': {
+                        fontSize: '1.1rem',
+                        fontWeight: isActive(item.path) ? 'bold' : 'medium',
+                        color: isActive(item.path) ? theme.palette.primary.main : 'inherit'
+                      },
+                      '& .MuiListItemText-secondary': {
+                        fontSize: '0.85rem',
+                        color: 'text.secondary'
+                      }
+                    }}
+                  />
                 </ListItem>
               ))}
             </List>
@@ -282,13 +392,15 @@ const Navbar = () => {
               to="/donate"
               fullWidth
               variant="contained"
-              startIcon={<VolunteerActivism />}
+              size="large"
+              startIcon={<VolunteerActivism sx={{ fontSize: 24 }} />}
               onClick={toggleMobileDrawer}
               sx={{
-                mb: 2,
-                py: 1.5,
+                mb: 3,
+                py: 2,
                 borderRadius: 2,
                 fontWeight: 'bold',
+                fontSize: '1.1rem',
                 bgcolor: theme.palette.secondary.main,
                 '&:hover': {
                   bgcolor: theme.palette.secondary.dark
@@ -298,15 +410,16 @@ const Navbar = () => {
               Donate Now
             </Button>
 
-            <Stack spacing={1}>
+            <Stack spacing={1.5}>
               <Button
                 component={Link}
                 to="/login"
                 fullWidth
                 variant="outlined"
-                startIcon={<Login />}
+                size="large"
+                startIcon={<Login sx={{ fontSize: 24 }} />}
                 onClick={toggleMobileDrawer}
-                sx={{ py: 1.5, borderRadius: 2 }}
+                sx={{ py: 2, borderRadius: 2, fontSize: '1.1rem' }}
               >
                 Login
               </Button>
@@ -315,9 +428,10 @@ const Navbar = () => {
                 to="/register"
                 fullWidth
                 variant="contained"
-                startIcon={<PersonAdd />}
+                size="large"
+                startIcon={<PersonAdd sx={{ fontSize: 24 }} />}
                 onClick={toggleMobileDrawer}
-                sx={{ py: 1.5, borderRadius: 2 }}
+                sx={{ py: 2, borderRadius: 2, fontSize: '1.1rem' }}
               >
                 Sign Up
               </Button>
@@ -336,11 +450,16 @@ const Navbar = () => {
         sx={{
           bgcolor: '#ffffff',
           borderBottom: `1px solid ${theme.palette.divider}`,
-          color: theme.palette.text.primary
+          color: theme.palette.text.primary,
+          minHeight: 96
         }}
       >
         <Container maxWidth="xl">
-          <Toolbar sx={{ justifyContent: 'space-between', py: 1 }}>
+          <Toolbar sx={{ 
+            justifyContent: 'space-between', 
+            py: 3,
+            minHeight: 96
+          }}>
             {/* Logo */}
             <Box
               component={Link}
@@ -354,13 +473,13 @@ const Navbar = () => {
             >
               <VolunteerActivism 
                 sx={{ 
-                  fontSize: 32, 
+                  fontSize: 48,
                   color: theme.palette.primary.main,
-                  mr: 1
+                  mr: 1.5
                 }} 
               />
               <Typography
-                variant="h5"
+                variant="h4"
                 sx={{
                   fontWeight: 'bold',
                   color: theme.palette.primary.main,
@@ -372,7 +491,7 @@ const Navbar = () => {
             </Box>
 
             {/* Desktop Navigation */}
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1.5 }}>
               {navigationLinks.map((link) => (
                 <NavButton
                   key={link.text}
@@ -382,23 +501,45 @@ const Navbar = () => {
                   {link.text}
                 </NavButton>
               ))}
+              
+              {/* Add Donation History to desktop navigation for donors */}
+              {user?.role === 'donor' && (
+                <NavButton
+                  to="/my-donations"
+                  active={isActive('/my-donations')}
+                >
+                  My Donations
+                </NavButton>
+              )}
+
+              {/* Add My Projects to desktop navigation for charity managers */}
+              {user?.role === 'charity' && (
+                <NavButton
+                  to={getCharityProjectsPath()}
+                  active={isActive(getCharityProjectsPath())}
+                >
+                  My Charity
+                </NavButton>
+              )}
             </Box>
 
             {/* Desktop Authentication */}
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 3 }}>
               {/* Only show donate button for non-admin users */}
-              {(!user || user.role !== 'admin') && (
+              {(!user || user.role === 'donor') && (
                 <Button
                   component={Link}
                   to="/donate"
                   variant="contained"
-                  startIcon={<VolunteerActivism />}
+                  size="large"
+                  startIcon={<VolunteerActivism sx={{ fontSize: 24 }} />}
                   sx={{
                     bgcolor: theme.palette.secondary.main,
                     color: '#ffffff',
                     fontWeight: 'bold',
-                    px: 3,
-                    py: 1,
+                    fontSize: '1.125rem',
+                    px: 4,
+                    py: 1.5,
                     borderRadius: 3,
                     textTransform: 'none',
                     boxShadow: theme.shadows[2],
@@ -415,12 +556,14 @@ const Navbar = () => {
               )}
 
               {user ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                   <Chip
                     label={`Welcome, ${user.name}`}
                     avatar={
                       <Avatar sx={{ 
-                        bgcolor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main 
+                        bgcolor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main,
+                        width: 32,
+                        height: 32
                       }}>
                         {user.role === 'admin' ? <AdminPanelSettings fontSize="small" /> : user.name?.charAt(0).toUpperCase()}
                       </Avatar>
@@ -432,15 +575,22 @@ const Navbar = () => {
                       color: user.role === 'admin' 
                         ? theme.palette.error.main 
                         : theme.palette.primary.main,
-                      fontWeight: 'medium'
+                      fontWeight: 'medium',
+                      fontSize: '1rem',
+                      height: 48,
+                      px: 2
                     }}
                   />
                   {user.role === 'admin' && (
                     <Chip 
                       label="Administrator" 
                       color="error" 
-                      size="small"
-                      sx={{ fontWeight: 'bold' }}
+                      size="medium"
+                      sx={{ 
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem',
+                        height: 36
+                      }}
                     />
                   )}
                   <Tooltip title="Account settings">
@@ -458,14 +608,16 @@ const Navbar = () => {
                       }}
                     >
                       <Avatar sx={{ 
-                        bgcolor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main 
+                        bgcolor: user.role === 'admin' ? theme.palette.error.main : theme.palette.primary.main,
+                        width: 48,
+                        height: 48
                       }}>
                         {user.role === 'admin' ? <AdminPanelSettings /> : user.name?.charAt(0).toUpperCase()}
                       </Avatar>
                     </IconButton>
                   </Tooltip>
                   <Menu
-                    sx={{ mt: '45px' }}
+                    sx={{ mt: '55px' }}
                     anchorEl={anchorElUser}
                     anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
                     keepMounted
@@ -475,7 +627,7 @@ const Navbar = () => {
                     PaperProps={{
                       sx: {
                         borderRadius: 2,
-                        minWidth: 200,
+                        minWidth: 280,
                         boxShadow: theme.shadows[8]
                       }
                     }}
@@ -493,29 +645,62 @@ const Navbar = () => {
                         }}
                         sx={{
                           gap: 2,
-                          py: 1.5,
+                          py: 2,
+                          px: 3,
                           '&:hover': {
                             bgcolor: alpha(theme.palette.primary.main, 0.08)
-                          }
+                          },
+                          // Highlight special items for better visibility
+                          ...((item.text === 'Donation History' || item.text === 'My Charity') && {
+                            bgcolor: alpha(theme.palette.primary.main, 0.03),
+                            borderLeft: `4px solid ${theme.palette.primary.main}`,
+                            ml: 0,
+                            pl: 2
+                          })
                         }}
                       >
-                        {item.icon}
-                        <Typography>{item.text}</Typography>
+                        <Box sx={{ minWidth: 28, display: 'flex', justifyContent: 'center' }}>
+                          {item.icon}
+                        </Box>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography sx={{ 
+                            fontSize: '1.1rem',
+                            fontWeight: (item.text === 'Donation History' || item.text === 'My Charity') ? 'bold' : 'normal'
+                          }}>
+                            {item.text}
+                          </Typography>
+                          {item.description && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: 'text.secondary',
+                                display: 'block',
+                                fontSize: '0.85rem',
+                                mt: 0.5
+                              }}
+                            >
+                              {item.description}
+                            </Typography>
+                          )}
+                        </Box>
                       </MenuItem>
                     ))}
                   </Menu>
                 </Box>
               ) : (
-                <Stack direction="row" spacing={1}>
+                <Stack direction="row" spacing={2}>
                   <Button
                     component={Link}
                     to="/login"
                     variant="outlined"
-                    startIcon={<Login />}
+                    size="large"
+                    startIcon={<Login sx={{ fontSize: 24 }} />}
                     sx={{
                       textTransform: 'none',
                       borderRadius: 2,
-                      px: 3
+                      px: 4,
+                      py: 1.5,
+                      fontSize: '1.1rem'
                     }}
                   >
                     Login
@@ -524,12 +709,15 @@ const Navbar = () => {
                     component={Link}
                     to="/register"
                     variant="contained"
-                    startIcon={<PersonAdd />}
+                    size="large"
+                    startIcon={<PersonAdd sx={{ fontSize: 24 }} />}
                     sx={{
                       textTransform: 'none',
                       borderRadius: 2,
-                      px: 3,
-                      fontWeight: 'bold'
+                      px: 4,
+                      py: 1.5,
+                      fontWeight: 'bold',
+                      fontSize: '1.1rem'
                     }}
                   >
                     Sign Up
@@ -539,20 +727,22 @@ const Navbar = () => {
             </Box>
 
             {/* Mobile Menu Button */}
-            <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1 }}>
-              {(!user || user.role !== 'admin') && (
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.5 }}>
+              {(!user || user.role === 'donor') && (
                 <Button
                   component={Link}
                   to="/donate"
                   variant="contained"
-                  size="small"
+                  size="medium"
                   sx={{
                     bgcolor: theme.palette.secondary.main,
                     color: '#ffffff',
                     fontWeight: 'bold',
                     minWidth: 'auto',
-                    px: 2,
+                    px: 3,
+                    py: 1.5,
                     borderRadius: 2,
+                    fontSize: '1rem',
                     '&:hover': {
                       bgcolor: theme.palette.secondary.dark
                     }
@@ -566,12 +756,13 @@ const Navbar = () => {
                 onClick={toggleMobileDrawer}
                 sx={{
                   color: theme.palette.text.primary,
+                  p: 1.5,
                   '&:hover': {
                     bgcolor: alpha(theme.palette.primary.main, 0.08)
                   }
                 }}
               >
-                <MenuIcon />
+                <MenuIcon sx={{ fontSize: 32 }} />
               </IconButton>
             </Box>
           </Toolbar>

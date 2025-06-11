@@ -1,5 +1,5 @@
 // src/redux/slices/donationSlice.js
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import donationService from '../services/donationService';
 
 // Create a payment intent
@@ -90,6 +90,19 @@ export const getDonationDetails = createAsyncThunk(
   }
 );
 
+// Action to get donor dashboard stats
+export const getDonorDashboardStats = createAsyncThunk(
+  'donations/getDonorDashboardStats',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await donationService.getDonorDashboardStats();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch donor stats');
+    }
+  }
+);
+
 // Get charity donation statistics
 export const getCharityDonationStats = createAsyncThunk(
   'donation/getCharityDonationStats',
@@ -114,10 +127,13 @@ const initialState = {
   selectedDonation: null,
   clientSecret: null,
   donationId: null,
+  donorStats: null,
   paymentIntentId: null,
   blockchainVerification: null,
   charityStats: null,
   isLoading: false,
+  isLoadingDonorStats: false,
+  isRendering: false,
   isSuccess: false,
   isError: false,
   message: ''
@@ -143,8 +159,11 @@ const donationSlice = createSlice({
       state.isError = false;
       state.message = '';
     },
+    setRendering: (state, action) => {
+    state.isRendering = action.payload;
+  }
   },
-  extraReducers: (builder) => {
+  extraReducers: (builder) => {   
     builder
       // Create payment intent cases
       .addCase(createPaymentIntent.pending, (state) => {
@@ -257,9 +276,20 @@ const donationSlice = createSlice({
         state.isSuccess = false;
         state.isError = true;
         state.message = action.payload;
+      })      .addCase(getDonorDashboardStats.pending, (state) => {
+        state.isLoadingDonorStats = true;
+        state.error = null;
+      })
+      .addCase(getDonorDashboardStats.fulfilled, (state, action) => {
+        state.isLoadingDonorStats = false;
+        state.donorStats = action.payload;
+      })
+      .addCase(getDonorDashboardStats.rejected, (state, action) => {
+        state.isLoadingDonorStats = false;
+        state.error = action.payload;
       });
   }
 });
 
-export const { resetDonationState, clearCurrentDonation } = donationSlice.actions;
+export const { resetDonationState, clearCurrentDonation, setLoading } = donationSlice.actions;
 export default donationSlice.reducer;

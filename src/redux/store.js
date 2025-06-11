@@ -3,6 +3,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import charityReducer from './slices/charitySlice';
 import donationReducer from './slices/donationSlice';
+import donationHistorySlice from './slices/donationHistorySlice';
 import projectReducer from './slices/projectSlice';
 import adminReducer from './slices/adminSlice'; // Add admin reducer
 
@@ -11,6 +12,7 @@ export const store = configureStore({
     auth: authReducer,
     charities: charityReducer,
     donations: donationReducer,
+    donationsHistory: donationHistorySlice,
     projects: projectReducer,
     admin: adminReducer, // Add admin reducer
   },
