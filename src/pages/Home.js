@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux'; // NEW: Redux imports
 import {
   Box,
   Container,
@@ -31,59 +32,43 @@ import {
 } from '@mui/icons-material';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
+// NEW: Import Redux actions and selectors
+import { fetchHomepageStats, selectHomepageStats } from '../redux/slices/statsSlice';
 
 const Home = () => {
   const theme = useTheme();
-  const [stats, setStats] = useState({
-    totalCharities: 0,
-    totalDonated: 0,
-    totalDonors: 0,
-    successRate: 0,
-    loading: true
-  });
+  const dispatch = useDispatch(); // NEW: Redux dispatch
+  const { data: statsData, loading: statsLoading } = useSelector(selectHomepageStats); // NEW: Redux selector
+  
   const [latestDonation, setLatestDonation] = useState(null);
 
-  // Fetch platform statistics
+  // NEW: Fetch platform statistics using Redux
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await fetch('/api/stats/platform');
-        const data = await response.json();
-        
-        setStats({
-          totalCharities: data.totalCharities || 0,
-          totalDonated: data.totalDonated || 0,
-          totalDonors: data.totalDonors || 0,
-          successRate: data.successRate || 0,
-          loading: false
-        });
-      } catch (error) {
-        console.error('Error fetching platform stats:', error);
-        setStats(prev => ({ ...prev, loading: false }));
-      }
-    };
-
-    fetchStats();
-  }, []);
+    // Only fetch if we don't have recent data
+    if (!statsData || (statsData.lastUpdated && 
+        (new Date() - new Date(statsData.lastUpdated)) > 5 * 60 * 1000)) {
+      console.log('🔄 Homepage: Fetching fresh stats via Redux...');
+      dispatch(fetchHomepageStats());
+    }
+  }, [dispatch, statsData]);
 
   // Fetch latest donation for real-time display
   useEffect(() => {
     const fetchLatestDonation = async () => {
       try {
-        const response = await fetch('/api/donations/latest');
-        const data = await response.json();
-        setLatestDonation(data);
+        // Get the most recent donation from our existing stats
+        if (statsData?.recent && statsData.recent.length > 0) {
+          setLatestDonation(statsData.recent[0]);
+        }
       } catch (error) {
-        console.error('Error fetching latest donation:', error);
+        console.error('Error setting latest donation:', error);
       }
     };
 
-    fetchLatestDonation();
-    
-    // Optional: Set up real-time updates
-    const interval = setInterval(fetchLatestDonation, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+    if (statsData) {
+      fetchLatestDonation();
+    }
+  }, [statsData]);
 
   const features = [
     {
@@ -108,11 +93,11 @@ const Home = () => {
 
   const formatCurrency = (amount) => {
     if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(1)}M`;
+      return `RON ${(amount / 1000000).toFixed(1)}M`;
     } else if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(1)}K`;
+      return `RON ${(amount / 1000).toFixed(1)}K`;
     }
-    return `$${amount}`;
+    return `RON ${amount}`;
   };
 
   const formatNumber = (num) => {
@@ -122,25 +107,26 @@ const Home = () => {
     return `${num}+`;
   };
 
+  // NEW: Use Redux data for platform stats
   const platformStats = [
     { 
       label: "Verified Charities", 
-      value: stats.loading ? '...' : formatNumber(stats.totalCharities), 
+      value: statsLoading ? '...' : formatNumber(statsData?.totals?.totalCharities || 0), 
       icon: <AccountBalance /> 
     },
     { 
       label: "Total Donated", 
-      value: stats.loading ? '...' : formatCurrency(stats.totalDonated), 
+      value: statsLoading ? '...' : formatCurrency(statsData?.totals?.totalAmount || 0), 
       icon: <TrendingUp /> 
     },
     { 
       label: "Active Donors", 
-      value: stats.loading ? '...' : formatNumber(stats.totalDonors), 
+      value: statsLoading ? '...' : formatNumber(statsData?.totals?.totalDonors || 0), 
       icon: <Groups /> 
     },
     { 
-      label: "Success Rate", 
-      value: stats.loading ? '...' : `${stats.successRate}%`, 
+      label: "Blockchain Verified", 
+      value: statsLoading ? '...' : `${statsData?.blockchain?.verificationRate || 0}%`, 
       icon: <Security /> 
     }
   ];
@@ -264,7 +250,7 @@ const Home = () => {
                   {platformStats.slice(0, 2).map((stat, index) => (
                     <Box key={index} sx={{ textAlign: 'center' }}>
                       <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, color: theme.palette.primary.main }}>
-                        {stats.loading ? <CircularProgress size={20} /> : stat.value}
+                        {statsLoading ? <CircularProgress size={20} /> : stat.value}
                       </Typography>
                       <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
                         {stat.label}
@@ -319,20 +305,20 @@ const Home = () => {
                       {latestDonation ? (
                         <>
                           <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-                            {formatCurrency(latestDonation.amount)} → {latestDonation.charity?.name || latestDonation.project?.title || 'General Fund'}
+                            {formatCurrency(latestDonation.amount)} → {latestDonation.charity?.name || 'General Fund'}
                           </Typography>
                           <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                            {latestDonation.blockchainVerification ? 'Verified on blockchain' : 'Processing verification'} • {new Date(latestDonation.createdAt).toLocaleString()}
+                            {latestDonation.blockchainVerification?.verified ? 'Verified on blockchain' : 'Processing verification'} • {new Date(latestDonation.createdAt).toLocaleString()}
                           </Typography>
                         </>
                       ) : (
                         <>
                           <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-                            Connecting to live feed...
+                            {statsLoading ? 'Loading latest donation...' : 'No recent donations'}
                           </Typography>
                           <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                            <CircularProgress size={12} sx={{ mr: 1 }} />
-                            Loading real-time data
+                            {statsLoading && <CircularProgress size={12} sx={{ mr: 1 }} />}
+                            {statsLoading ? 'Loading real-time data' : 'Check back soon for updates'}
                           </Typography>
                         </>
                       )}
@@ -345,7 +331,7 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* Stats Section */}
+      {/* Stats Section - Updated to use Redux data */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Grid container spacing={3}>
           {platformStats.map((stat, index) => (
@@ -377,7 +363,7 @@ const Home = () => {
                   {stat.icon}
                 </IconButton>
                 <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-                  {stats.loading ? <CircularProgress size={24} /> : stat.value}
+                  {statsLoading ? <CircularProgress size={24} /> : stat.value}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {stat.label}
