@@ -19,6 +19,14 @@ const login = async (userData) => {
   return response.data;
 };
 
+// Delete user account
+const deleteAccount = async () => {
+  const response = await axios.delete('/auth/account');
+  // Clear localStorage
+  localStorage.removeItem('user');
+  return response.data;
+};
+
 // Get user profile
 const getProfile = async () => {
   const response = await axios.get('/auth/profile');
@@ -78,6 +86,7 @@ const authService = {
   updateProfile,
   updateProfileDetails,
   changePassword,
+  deleteAccount,
   logout,
 };
 

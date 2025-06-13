@@ -24,7 +24,9 @@ import {
   Alert,
   Button,
   IconButton,
-  Tooltip
+  Tooltip,
+  CardActions,
+  Badge
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -36,7 +38,10 @@ import {
   Security as SecurityIcon,
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  ArrowForward as ArrowForwardIcon,
+  ManageAccounts as ManageAccountsIcon,
+  Business as BusinessIcon
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -61,7 +66,7 @@ import {
   getSystemHealth
 } from '../../redux/slices/adminSlice';
 
-const DashboardOverview = () => {
+const DashboardOverview = ({ onTabChange }) => {
   const dispatch = useDispatch();
   const { 
     dashboardStats, 
@@ -96,6 +101,56 @@ const DashboardOverview = () => {
 
   // Prepare trends data
   const trendsData = dashboardStats?.trends || [];
+
+  // Quick access cards data
+  const quickAccessCards = [
+    {
+      title: 'Manage Users',
+      description: 'View, create, edit, and delete user accounts',
+      icon: <PeopleIcon />,
+      count: dashboardStats?.overview?.totalUsers || 0,
+      tabIndex: 1,
+      color: 'primary',
+      actions: ['View All', 'Add User', 'Bulk Actions']
+    },
+    {
+      title: 'Manage Charities',
+      description: 'Oversee charity organizations and their status',
+      icon: <CharityIcon />,
+      count: dashboardStats?.overview?.totalCharities || 0,
+      tabIndex: 2,
+      color: 'success',
+      actions: ['View All', 'Manage Status', 'Transfer Management']
+    },
+    {
+      title: 'Manage Projects',
+      description: 'Monitor charity projects and fundraising campaigns',
+      icon: <ProjectIcon />,
+      count: dashboardStats?.overview?.totalProjects || 0,
+      tabIndex: 3,
+      color: 'info',
+      actions: ['View All', 'Update Status', 'Progress Tracking']
+    },
+    {
+      title: 'Donation Management',
+      description: 'Track transactions and payment statuses',
+      icon: <PaymentIcon />,
+      count: dashboardStats?.overview?.totalDonations || 0,
+      tabIndex: 4,
+      color: 'warning',
+      actions: ['View All', 'Payment Status', 'Refunds']
+    },
+    {
+      title: 'Blockchain Verification',
+      description: 'Manage blockchain verification and transparency',
+      icon: <SecurityIcon />,
+      count: dashboardStats?.blockchain?.pendingVerifications || 0,
+      badge: dashboardStats?.blockchain?.pendingVerifications > 0,
+      tabIndex: 5,
+      color: 'secondary',
+      actions: ['View All', 'Verify Transactions', 'System Health']
+    }
+  ];
 
   if (!dashboardStats) {
     return (
@@ -157,9 +212,104 @@ const DashboardOverview = () => {
         </Alert>
       )}
 
+      {/* High Priority Alert for Pending Verifications */}
+      {dashboardStats?.blockchain?.pendingVerifications > 50 && (
+        <Alert 
+          severity="warning" 
+          sx={{ mb: 3 }}
+          action={
+            <Button 
+              color="inherit" 
+              size="small"
+              onClick={() => onTabChange && onTabChange(null, 5)}
+            >
+              REVIEW NOW
+            </Button>
+          }
+        >
+          High number of pending blockchain verifications ({dashboardStats.blockchain.pendingVerifications}). 
+          Immediate attention required.
+        </Alert>
+      )}
+
       <Grid container spacing={3}>
+        {/* Quick Access Management Cards */}
+        <Grid item xs={12}>
+          <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+            Quick Access Management
+          </Typography>
+          <Grid container spacing={2}>
+            {quickAccessCards.map((card, index) => (
+              <Grid item xs={12} sm={6} md={4} lg={2.4} key={index}>
+                <Card 
+                  sx={{ 
+                    height: '100%', 
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 4
+                    }
+                  }}
+                  onClick={() => onTabChange && onTabChange(null, card.tabIndex)}
+                >
+                  <CardContent sx={{ pb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <Badge 
+                        badgeContent={card.badge ? card.count : 0} 
+                        color="error" 
+                        invisible={!card.badge}
+                      >
+                        <Avatar sx={{ bgcolor: `${card.color}.main`, mr: 2 }}>
+                          {card.icon}
+                        </Avatar>
+                      </Badge>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="h6" component="div" noWrap>
+                          {card.title}
+                        </Typography>
+                        <Typography variant="h4" color={`${card.color}.main`}>
+                          {card.count}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                      {card.description}
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                      {card.actions.map((action, actionIndex) => (
+                        <Chip 
+                          key={actionIndex}
+                          label={action} 
+                          size="small" 
+                          variant="outlined"
+                        />
+                      ))}
+                    </Box>
+                  </CardContent>
+                  <CardActions sx={{ justifyContent: 'center', pt: 0 }}>
+                    <Button 
+                      size="small" 
+                      endIcon={<ArrowForwardIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTabChange && onTabChange(null, card.tabIndex);
+                      }}
+                    >
+                      Manage
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Grid>
+
         {/* Key Metrics Cards */}
         <Grid item xs={12} md={8}>
+          <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
+            Platform Metrics
+          </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6} md={3}>
               <Card>
@@ -402,9 +552,18 @@ const DashboardOverview = () => {
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Recent Activity
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6">
+                  Recent Activity
+                </Typography>
+                <Button 
+                  size="small" 
+                  onClick={() => onTabChange && onTabChange(null, 4)}
+                  endIcon={<ArrowForwardIcon />}
+                >
+                  View All Donations
+                </Button>
+              </Box>
               {dashboardStats.recentActivity && dashboardStats.recentActivity.length > 0 ? (
                 <TableContainer>
                   <Table>

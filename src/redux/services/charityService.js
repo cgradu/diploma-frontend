@@ -2,7 +2,6 @@
 import axios from '../../utils/axiosConfig';
 
 // Get all charities with optional filtering and pagination
-// Get all charities with optional filtering and pagination
 const getCharities = async (params = {}) => {
   try {
     const { page, limit, search = '', category = '', all = false } = params;
@@ -83,6 +82,29 @@ const createCharity = async (charityData) => {
     return response.data.data;
   } catch (error) {
     console.error('Error creating charity:', error);
+    throw error;
+  }
+};
+
+// Add this function to your charityService.js
+const deleteCharity = async (charityId) => {
+  try {
+    const response = await axios.delete(`/charities/${charityId}`);
+    return response.data.data;
+  } catch (error) {
+    console.error(`Error deleting charity ${charityId}:`, error);
+    throw error;
+  }
+};
+
+// Add to charityService.js
+const reactivateCharity = async (charityId) => {
+  try {
+    console.log(`Reactivating charity with ID: ${charityId}`);
+    const response = await axios.put(`/charities/${charityId}/reactivate`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error reactivating charity ${charityId}:`, error);
     throw error;
   }
 };
@@ -182,6 +204,18 @@ const checkFavorite = async (charityId) => {
   }
 };
 
+// Get active charities only
+const getActiveCharities = async () => {
+  try {
+    const response = await axios.get('/charities/active');
+    console.log('Active charities received:', response.data);
+    return response.data.data;
+  } catch (error) {
+    console.error('Error getting active charities:', error);
+    throw error;
+  }
+};
+
 const charityService = {
   getCharities,
   getCharityById,
@@ -196,7 +230,10 @@ const charityService = {
   updateCharity,
   updateCharityDetails,
   verifyBlockchainTransaction,
-  getBlockchainVerification
+  getBlockchainVerification,
+  deleteCharity,
+  reactivateCharity,
+  getActiveCharities
 };
 
 export default charityService;

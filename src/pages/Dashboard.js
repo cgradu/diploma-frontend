@@ -94,17 +94,22 @@ const Dashboard = () => {
   
   
   useEffect(() => {
-    // If no user, redirect to login
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
-    // Only fetch profile if we don't have detailed user data
-    if (user && !user.name) {
-      dispatch(getProfile());
-    }
-  }, [user, navigate, dispatch]);
+  // Check localStorage first before redirecting
+  const storedUser = localStorage.getItem('user');
+  console.log('Stored User:', storedUser);
+  const storedToken = localStorage.getItem('token');
+  console.log('Stored Token:', storedToken);
+  
+  if (!user && !storedUser && !storedToken) {
+    navigate('/login');
+    return;
+  }
+  
+  // Only fetch profile if we don't have detailed user data
+  if (user && !user.name) {
+    dispatch(getProfile());
+  }
+}, [user, navigate, dispatch]);
 
   // Add this useEffect in your Dashboard component
   useEffect(() => {
@@ -654,48 +659,84 @@ const DonorDashboard = () => {
         <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
           Quick Actions
         </Typography>
-        <Grid container spacing={2}>
-          {managerCharity && (
-            <Grid item xs={12} sm={6} md={4}>
-              <Button
-                component={Link}
-                to={`/projects/create?charityId=${managerCharity.id}`}
-                fullWidth
-                variant="contained"
-                size="large"
-                startIcon={<Add />}
-                sx={{
-                  py: 2,
-                  borderRadius: 2,
-                  fontWeight: 'bold',
-                  bgcolor: theme.palette.success.main,
-                  '&:hover': {
-                    bgcolor: theme.palette.success.dark
-                  }
-                }}
-              >
-                Create New Project
-              </Button>
-            </Grid>
-          )}
-          <Grid item xs={12} sm={6} md={4}>
+      <Grid container spacing={2}>
+        {managerCharity && (
+          <Grid item xs={12} sm={6} md={3}>
             <Button
               component={Link}
-              to="/profile"
+              to={`/charities/${managerCharity.id}`}
               fullWidth
               variant="outlined"
               size="large"
-              startIcon={<Person />}
+              startIcon={<Business />}
               sx={{
                 py: 2,
                 borderRadius: 2,
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                bgcolor: theme.palette.primary.main,
+                color: 'white',
+                border: 'none',
+                '&:hover': {
+                  bgcolor: theme.palette.primary.dark,
+                  border: 'none'
+                }
               }}
             >
-              Update Profile
+              My Charity
             </Button>
           </Grid>
+        )}
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Button
+            component={Link}
+            to={`/charities/${managerCharity?.id}/projects`}
+            fullWidth
+            variant="outlined"
+            size="large"
+            startIcon={<Assignment />}
+            sx={{
+              py: 2,
+              borderRadius: 2,
+              fontWeight: 'bold',
+              bgcolor: theme.palette.primary.main,
+              color: 'white',
+              border: 'none',
+              '&:hover': {
+                bgcolor: theme.palette.primary.dark,
+                border: 'none'
+              }
+            }}
+          >
+            My Projects
+          </Button>
         </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Button
+            component={Link}
+            to="/profile"
+            fullWidth
+            variant="outlined"
+            size="large"
+            startIcon={<Edit />}
+            sx={{
+              py: 2,
+              borderRadius: 2,
+              fontWeight: 'bold',
+              bgcolor: theme.palette.primary.main,
+              color: 'white',
+              border: 'none',
+              '&:hover': {
+                bgcolor: theme.palette.primary.dark,
+                border: 'none'
+              }
+            }}
+          >
+            Update Profile
+          </Button>
+        </Grid>
+      </Grid>
       </Paper>
 
       {/* Profile Status */}

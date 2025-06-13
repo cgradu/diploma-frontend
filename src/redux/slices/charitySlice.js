@@ -128,6 +128,55 @@ export const getManagerCharity = createAsyncThunk(
   }
 );
 
+// Create charity
+export const createCharity = createAsyncThunk(
+  'charities/createCharity',
+  async (charityData, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Creating charity:', charityData);
+      const result = await charityService.createCharity(charityData);
+      console.log('✅ Charity created successfully:', result);
+      return result;
+    } catch (error) {
+      const errorMessage = handleError(error, 'createCharity');
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+export const deleteCharity = createAsyncThunk(
+  'charities/deleteCharity',
+  async (charityId, { rejectWithValue, getState }) => {
+    try {
+      // Validate input
+      if (!charityId) {
+        return rejectWithValue('Charity ID is required');
+      }
+
+      console.log('🗑️ Deleting charity:', charityId);
+      
+      // Check if user has permission (optional check)
+      const user = getState().auth.user;
+      if (!user) {
+        return rejectWithValue('User not authenticated');
+      }
+
+      if (user.role !== 'charity' && user.role !== 'admin') {
+        return rejectWithValue('Insufficient permissions to delete charity');
+      }
+
+      const result = await charityService.deleteCharity(charityId);
+      console.log('✅ Charity deleted successfully');
+      
+      // Return the charity ID for state updates
+      return { charityId: parseInt(charityId), ...result };
+    } catch (error) {
+      const errorMessage = handleError(error, 'deleteCharity');
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 // Update charity details
 export const updateCharityDetails = createAsyncThunk(
   'charities/updateCharityDetails',
@@ -165,6 +214,33 @@ export const retryFailedRequest = createAsyncThunk(
       }
     } catch (error) {
       return rejectWithValue('Retry failed');
+    }
+  }
+);
+
+// Add reactivate thunk
+export const reactivateCharity = createAsyncThunk(
+  'charities/reactivateCharity',
+  async (charityId, { rejectWithValue }) => {
+    try {
+      console.log('🔄 Reactivating charity:', charityId);
+      const result = await charityService.reactivateCharity(charityId);
+      console.log('✅ Charity reactivated successfully:', result);
+      return result;
+    } catch (error) {
+      const errorMessage = handleError(error, 'reactivateCharity');
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+export const fetchActiveCharities = createAsyncThunk(
+  'charities/fetchActive',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await charityService.getActiveCharities();
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
     }
   }
 );
@@ -224,6 +300,41 @@ export const charitySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Create charity cases
+      .addCase(createCharity.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+        state.message = '';
+      })
+      .addCase(createCharity.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.isError = false;
+        
+        // Handle different response structures
+        let newCharity = action.payload;
+        if (action.payload?.success && action.payload?.data) {
+          newCharity = action.payload.data;
+        }
+        
+        // Set as manager charity since user just created it
+        state.managerCharity = newCharity;
+        
+        // Add to charities array if it exists
+        if (state.charities) {
+          state.charities.unshift(newCharity);
+        }
+        
+        console.log('✅ Charity created successfully:', newCharity.name);
+      })
+      .addCase(createCharity.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+        
+        console.error('❌ Failed to create charity:', action.payload);
+      })
+      
       // Get charities cases
       .addCase(getCharities.pending, (state) => {
         state.isLoading = true;
@@ -377,7 +488,6 @@ export const charitySlice = createSlice({
         
         console.error('❌ Failed to fetch manager charity:', action.payload);
       })
-      
       // Update Charity Details cases
       .addCase(updateCharityDetails.pending, (state) => {
         state.isLoading = true;
@@ -416,14 +526,86 @@ export const charitySlice = createSlice({
         state.message = action.payload;
         
         console.error('❌ Failed to update charity:', action.payload);
-      });
+      })
+      .addCase(deleteCharity.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+        state.message = '';
+      })
+      .addCase(deleteCharity.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.isError = false;
+        state.message = 'Charity deleted successfully';
+        
+        const deletedCharityId = action.payload.charityId;
+        
+        // Clear manager charity if it's the one being deleted
+        if (state.managerCharity && state.managerCharity.id === deletedCharityId) {
+          state.managerCharity = null;
+        }
+        
+        // Clear current charity if it's the one being deleted
+        if (state.charity && state.charity.id === deletedCharityId) {
+          state.charity = null;
+        }
+        
+        // Remove from charities array
+        if (state.charities && Array.isArray(state.charities)) {
+          state.charities = state.charities.filter(charity => 
+            charity.id !== deletedCharityId
+          );
+          
+          // Update pagination if needed
+          if (state.pagination.total > 0) {
+            state.pagination.total -= 1;
+          }
+        }
+        
+        console.log('✅ Charity deleted from state');
+      })
+      .addCase(deleteCharity.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
+        
+        console.error('❌ Failed to delete charity:', action.payload);
+      })
+      // Add to extraReducers
+      .addCase(reactivateCharity.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.isError = false;
+        state.message = 'Charity reactivated successfully';
+        
+        // Update manager charity status
+        if (state.managerCharity) {
+          state.managerCharity.status = 'ACTIVE';
+          state.managerCharity.deletedAt = null;
+          state.managerCharity.canReactivate = false;
+        }
+        
+        console.log('✅ Charity reactivated in state');
+      })
+      .addCase(fetchActiveCharities.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchActiveCharities.fulfilled, (state, action) => {
+        state.loading = false;
+        state.activeCharities = action.payload;
+      })
+      .addCase(fetchActiveCharities.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });;
   },
 });
 
 export const { 
   reset, 
   clearCharity, 
-  resetCharityState, 
+  resetCharityState,
   clearError, 
   incrementRetryCount, 
   resetRetryCount 

@@ -84,7 +84,7 @@ const CharityProjectsPage = () => {
     message: projectMessage = '' 
   } = useSelector(state => state.projects || {});
   
-  const { user } = useSelector(state => state.auth);
+  const { user = null} = useSelector(state => state.auth || {});
   
   // Local state for filtering
   const [statusFilter, setStatusFilter] = useState('All');
@@ -154,12 +154,35 @@ const CharityProjectsPage = () => {
     setStatusFilter('All');
   };
   
-  // Check if user is charity owner
-  const isCharityOwner = () => {
-    if (!user || !charity) return false;
-    console.log('Checking if user is charity owner:', charity.id , user.managedCharity.id);
-    return user.managedCharity.id === charity.id || user.role === 'admin';
-  };
+// Even safer version with explicit checks:
+const isCharityOwner = () => {
+  console.log('Checking charity ownership:', { 
+    hasUser: !!user, 
+    hasCharity: !!charity,
+    userRole: user?.role,
+    hasManagedCharity: !!user?.managedCharity,
+    managedCharityId: user?.managedCharity?.id,
+    currentCharityId: charity?.id
+  });
+  
+  // No user or charity data
+  if (!user || !charity) {
+    console.log('Missing user or charity data');
+    return false;
+  }
+  
+  // Admin can manage any charity
+  if (user.role === 'admin') {
+    console.log('User is admin - has access');
+    return true;
+  }
+  
+  // Check if user has a managed charity and it matches current charity
+  const hasMatchingCharity = user.managedCharity?.id === charity.id;
+  console.log('Has matching charity:', hasMatchingCharity);
+  
+  return hasMatchingCharity;
+};
 
 // Alternative version using Redux action (if you have a delete action)
 const handleDeleteProject = async (projectId) => {
@@ -605,7 +628,7 @@ const handleCreateSuccess = () => {
             </Button>
           </Box>
         ) : (
-          (!user || user.role !== 'charity') && (
+          (!user || user?.role !== 'charity') && (
             <Button
               component={Link}
               to={`/donate?projectId=${project.id}&charityId=${charityId}`}
@@ -973,7 +996,7 @@ const handleCreateSuccess = () => {
                   />
                 </Stack>
               </Box>
-              {(!user || user.role !== 'charity') && (
+              {(!user || user?.role !== 'charity') && (
               <Button
                 component={Link}
                 to={`/donate?charityId=${charity.id}`}
@@ -1297,7 +1320,7 @@ const handleCreateSuccess = () => {
               justifyContent="center"
               alignItems="center"
             >
-              {(user.role === 'donor') && (
+              {(user?.role === 'donor') && (
               <Button
                 component={Link}
                 to={`/donate?charityId=${charity.id}`}

@@ -316,6 +316,31 @@ export const advancedSearch = createAsyncThunk(
   }
 );
 
+export const bulkDeleteCharities = createAsyncThunk(
+  'admin/bulkDeleteCharities',
+  async (charityIds, thunkAPI) => {
+    try {
+      await adminService.bulkDeleteCharities(charityIds);
+      return { charityIds };
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+export const bulkUpdateCharities = createAsyncThunk(
+  'admin/bulkUpdateCharities',
+  async ({ charityIds, updateData }, thunkAPI) => {
+    try {
+      return await adminService.bulkUpdateCharities(charityIds, updateData);
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
 // Export data
 export const exportData = createAsyncThunk(
   'admin/exportData',
@@ -506,11 +531,28 @@ export const adminSlice = createSlice({
         }
         state.message = 'Verification updated successfully';
       })
-      
       .addCase(deleteVerificationAdmin.fulfilled, (state, action) => {
         state.isSuccess = true;
         state.verifications = state.verifications.filter(verification => verification.id !== action.payload.id);
         state.message = 'Verification deleted successfully';
+      })
+      .addCase(bulkDeleteCharities.fulfilled, (state, action) => {
+        state.isSuccess = true;
+        state.charities = state.charities.filter(charity => !action.payload.charityIds.includes(charity.id));
+        state.bulkActions.selectedIds = [];
+        state.message = 'Charities deleted successfully';
+      })
+      .addCase(bulkUpdateCharities.fulfilled, (state, action) => {
+        state.isSuccess = true;
+        // Update multiple charities in state
+        action.payload.data.forEach(updatedCharity => {
+          const index = state.charities.findIndex(charity => charity.id === updatedCharity.id);
+          if (index !== -1) {
+            state.charities[index] = updatedCharity;
+          }
+        });
+        state.bulkActions.selectedIds = [];
+        state.message = 'Charities updated successfully';
       });
   },
 });
@@ -522,7 +564,7 @@ export const {
   setDeleteConfirmOpen, 
   toggleBulkSelection, 
   clearBulkSelection, 
-  setBulkActionsOpen 
+  setBulkActionsOpen
 } = adminSlice.actions;
 
 export default adminSlice.reducer;

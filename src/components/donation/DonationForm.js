@@ -35,18 +35,9 @@ import {
   Message as MessageIcon
 } from '@mui/icons-material';
 
-import { getProjectsByCharityId } from '../../redux/slices/projectSlice';
-import { 
-  selectCharities, 
-  selectCharitiesLoading, 
-  selectProjectsLoading
-} from '../../redux/selectors';
-
-const currencyConfig = {
-  RON: { symbol: 'lei', flag: '🇷🇴' },
-  EUR: { symbol: '€', flag: '🇪🇺' },
-  USD: { symbol: '$', flag: '🇺🇸' }
-};
+// Updated imports to use the new active functions
+import { fetchActiveCharities } from '../../redux/slices/charitySlice';
+import { fetchActiveProjectsByCharity } from '../../redux/slices/projectSlice';
 
 const presetAmounts = [10, 25, 50, 100];
 
@@ -60,62 +51,64 @@ const DonationForm = ({ initialData, onComplete }) => {
     projectId: initialData.projectId || '',
     message: initialData.message || '',
     anonymous: initialData.anonymous || false,
-    currency: initialData.currency || 'RON'
+    currency: 'RON' // Fixed to RON only
   });
 
-  const charities = useSelector(selectCharities);
-  const charitiesLoading = useSelector(selectCharitiesLoading);
-  const projectsLoading = useSelector(selectProjectsLoading);
-  
-  const projectsForCharity = useSelector(state => {
-    if (!state.projects || !Array.isArray(state.projects.projects)) {
-      return [];
-    }
-    return state.projects.projects;
-  });
+  // Updated selectors to use activeCharities and activeProjects
+  const activeCharities = useSelector(state => state.charities.activeCharities || []);
+  const activeProjects = useSelector(state => state.projects.activeProjects || []);
+  const charitiesLoading = useSelector(state => state.charities.loading);
+  const projectsLoading = useSelector(state => state.projects.loading);
+
+  console.log('Active Projects:', activeProjects);
+  console.log('Active Charities:', activeCharities);
   
   const [customAmount, setCustomAmount] = useState(false);
   const [errors, setErrors] = useState({});
   const [focusedField, setFocusedField] = useState('');
 
-  // Get selected charity details
+  // Updated to use activeCharities
   const selectedCharity = useMemo(() => {
-    return charities.find(charity => charity.id.toString() === formData.charityId.toString());
-  }, [charities, formData.charityId]);
+    return activeCharities.find(charity => charity.id.toString() === formData.charityId.toString());
+  }, [activeCharities, formData.charityId]);
 
-  // Get selected project details
+  // Updated to use activeProjects
   const selectedProject = useMemo(() => {
-    return projectsForCharity.find(project => project.id.toString() === formData.projectId.toString());
-  }, [projectsForCharity, formData.projectId]);
+    return activeProjects.find(project => project.id.toString() === formData.projectId.toString());
+  }, [activeProjects, formData.projectId]);
 
+  // Fetch active charities on component mount
+  useEffect(() => {
+    dispatch(fetchActiveCharities());
+  }, [dispatch]);
+
+  // Updated to use fetchActiveProjectsByCharity
   useEffect(() => {
     if (formData.charityId && formData.charityId !== 'undefined') {
       const charityIdValue = parseInt(formData.charityId, 10);
       if (!isNaN(charityIdValue)) {
-        dispatch(getProjectsByCharityId(charityIdValue));
+        dispatch(fetchActiveProjectsByCharity(charityIdValue));
       }
     }
   }, [formData.charityId, dispatch]);
-  
-// Replace the problematic useEffect with these two separate ones:
 
-useEffect(() => {
-  if (initialData.charityId && formData.charityId !== initialData.charityId) {
-    setFormData(prev => ({
-      ...prev,
-      charityId: initialData.charityId
-    }));
-  }
-}, [initialData.charityId, formData.charityId]);
+  useEffect(() => {
+    if (initialData.charityId && formData.charityId !== initialData.charityId) {
+      setFormData(prev => ({
+        ...prev,
+        charityId: initialData.charityId
+      }));
+    }
+  }, [initialData.charityId, formData.charityId]);
 
-useEffect(() => {
-  if (initialData.projectId && formData.projectId !== initialData.projectId) {
-    setFormData(prev => ({
-      ...prev,
-      projectId: initialData.projectId
-    }));
-  }
-}, [initialData.projectId, formData.projectId]);
+  useEffect(() => {
+    if (initialData.projectId && formData.projectId !== initialData.projectId) {
+      setFormData(prev => ({
+        ...prev,
+        projectId: initialData.projectId
+      }));
+    }
+  }, [initialData.projectId, formData.projectId]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -176,6 +169,10 @@ useEffect(() => {
     if (!formData.charityId) {
       newErrors.charityId = 'Please select a charity';
     }
+
+    if (!formData.projectId) {
+      newErrors.projectId = 'Please select a project';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -195,8 +192,7 @@ useEffect(() => {
   );
 
   const formatAmount = (amount) => {
-    const config = currencyConfig[formData.currency];
-    return `${amount} ${config.symbol}`;
+    return `${amount} lei`;
   };
 
   return (
@@ -251,7 +247,8 @@ useEffect(() => {
                   <MenuItem value="">
                     <em>Select a charity</em>
                   </MenuItem>
-                  {charities.map(charity => (
+                  {/* Updated to use activeCharities */}
+                  {activeCharities.map(charity => (
                     <MenuItem key={charity.id} value={charity.id}>
                       <Box>
                         <Typography variant="body1" fontWeight="medium">
@@ -301,84 +298,101 @@ useEffect(() => {
           </Card>
         </Grid>
 
-        {/* Project Selection */}
-        {formData.charityId && projectsForCharity.length > 0 && (
-          <Grid item xs={12}>
-            <Grow in timeout={600}>
-              <Card variant="outlined">
-                <CardContent>
-                  <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-                    <Avatar sx={{ bgcolor: theme.palette.secondary.main }}>
-                      <CampaignIcon />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h6" fontWeight="bold">
-                        Select Project (Optional)
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Choose a specific project or make a general donation
-                      </Typography>
-                    </Box>
-                  </Stack>
+        {/* Project Selection - Always Visible */}
+        <Grid item xs={12}>
+          <Card variant="outlined">
+            <CardContent>
+              <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
+                <Avatar sx={{ bgcolor: theme.palette.secondary.main }}>
+                  <CampaignIcon />
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold">
+                    Select Project
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Choose which specific project to support
+                  </Typography>
+                </Box>
+              </Stack>
 
-                  <FormControl fullWidth>
-                    <InputLabel>Project</InputLabel>
-                    <Select
-                      name="projectId"
-                      value={formData.projectId}
-                      onChange={handleChange}
-                      label="Project"
-                      disabled={isLoading}
-                    >
-                      <MenuItem value="">
-                        <em>General donation</em>
-                      </MenuItem>
-                      {projectsForCharity.map(project => (
-                        <MenuItem key={project.id} value={project.id}>
-                          <Box>
-                            <Typography variant="body1" fontWeight="medium">
-                              {project.title}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              Goal: {project.goal} {formData.currency} • Progress: {((project.currentAmount / project.goal) * 100).toFixed(1)}%
-                            </Typography>
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-
-                  {selectedProject && (
-                    <Fade in timeout={500}>
-                      <Box sx={{ mt: 2 }}>
-                        <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                          {selectedProject.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" paragraph>
-                          {selectedProject.description}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                          <Chip 
-                            label={`${formatAmount(selectedProject.currentAmount)} raised`}
-                            size="small" 
-                            color="success" 
-                            variant="outlined"
-                          />
-                          <Chip 
-                            label={`${formatAmount(selectedProject.goal)} goal`}
-                            size="small" 
-                            color="primary" 
-                            variant="outlined"
-                          />
+              <FormControl fullWidth error={!!errors.projectId}>
+                <InputLabel>Project</InputLabel>
+                <Select
+                  name="projectId"
+                  value={formData.projectId}
+                  onChange={handleChange}
+                  label="Project"
+                  disabled={isLoading || !formData.charityId || activeProjects.length === 0}
+                >
+                  {!formData.charityId ? (
+                    <MenuItem value="">
+                      <em>First select a charity</em>
+                    </MenuItem>
+                  ) : activeProjects.length === 0 ? (
+                    <MenuItem value="">
+                      <em>{isLoading ? 'Loading projects...' : 'No active projects available'}</em>
+                    </MenuItem>
+                  ) : (
+                    /* Updated to use activeProjects */
+                    activeProjects.map(project => (
+                      <MenuItem key={project.id} value={project.id}>
+                        <Box>
+                          <Typography variant="body1" fontWeight="medium">
+                            {project.title}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Goal: {project.goal} lei • Progress: {project.progressPercentage || ((project.currentAmount / project.goal) * 100).toFixed(1)}%
+                          </Typography>
                         </Box>
-                      </Box>
-                    </Fade>
+                      </MenuItem>
+                    ))
                   )}
-                </CardContent>
-              </Card>
-            </Grow>
-          </Grid>
-        )}
+                </Select>
+                {errors.projectId && (
+                  <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                    {errors.projectId}
+                  </Typography>
+                )}
+              </FormControl>
+
+              {selectedProject && (
+                <Fade in timeout={500}>
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                      {selectedProject.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" paragraph>
+                      {selectedProject.description}
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      <Chip 
+                        label={`${formatAmount(selectedProject.currentAmount)} raised`}
+                        size="small" 
+                        color="success" 
+                        variant="outlined"
+                      />
+                      <Chip 
+                        label={`${formatAmount(selectedProject.goal)} goal`}
+                        size="small" 
+                        color="primary" 
+                        variant="outlined"
+                      />
+                      {selectedProject.daysRemaining && (
+                        <Chip 
+                          label={`${selectedProject.daysRemaining} days left`}
+                          size="small" 
+                          color="warning" 
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                </Fade>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
         {/* Amount Selection */}
         <Grid item xs={12}>
@@ -393,35 +407,10 @@ useEffect(() => {
                     Donation Amount
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Select an amount or enter a custom value
+                    Select an amount or enter a custom value (in RON)
                   </Typography>
                 </Box>
               </Stack>
-
-              {/* Currency Selection */}
-              <Box sx={{ mb: 3 }}>
-                <FormControl fullWidth>
-                  <InputLabel>Currency</InputLabel>
-                  <Select
-                    name="currency"
-                    value={formData.currency}
-                    onChange={handleChange}
-                    label="Currency"
-                  >
-                    {Object.entries(currencyConfig).map(([code, config]) => (
-                      <MenuItem key={code} value={code}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span>{config.flag}</span>
-                          <span>{code}</span>
-                          <Typography variant="caption" color="text.secondary">
-                            ({config.symbol})
-                          </Typography>
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
 
               {/* Preset Amounts */}
               <Box sx={{ mb: 3 }}>
@@ -489,7 +478,7 @@ useEffect(() => {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          {currencyConfig[formData.currency].symbol}
+                          lei
                         </InputAdornment>
                       ),
                       inputProps: { min: 1, step: 1 }

@@ -115,6 +115,17 @@ const getProjectStatuses = async () => {
   }
 };
 
+const getActiveProjectsByCharity = async (charityId) => {
+  try {
+    const response = await axios.get(`/projects/active/charity/${charityId}`);
+    console.log('Active projects by charity received:', response.data.data);
+    return response.data.data;
+  } catch (error) {
+    console.error(`Error getting active projects for charity ${charityId}:`, error);
+    throw error;
+  }
+};
+
 const projectService = {
   getAllProjects,
   getProjectById,
@@ -122,7 +133,8 @@ const projectService = {
   createProject,
   updateProject,
   deleteProject,
-  getProjectStatuses
+  getProjectStatuses,
+  getActiveProjectsByCharity
 };
 
 export default projectService;

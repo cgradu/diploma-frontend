@@ -6,7 +6,8 @@ import authService from '../services/authService';
 const user = JSON.parse(localStorage.getItem('user'));
 
 const initialState = {
-  user: user || null,
+  user: JSON.parse(localStorage.getItem('user')) || null,
+  token: localStorage.getItem('token') || null,
   isLoading: false,
   isSuccess: false,
   isError: false,
@@ -34,6 +35,19 @@ export const login = createAsyncThunk(
     try {
       console.log('Sending login data:', userData);
       return await authService.login(userData);
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || error.toString();
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// Delete user account
+export const deleteAccount = createAsyncThunk(
+  'auth/deleteAccount',
+  async (_, thunkAPI) => {
+    try {
+      return await authService.deleteAccount();
     } catch (error) {
       const message = error.response?.data?.message || error.message || error.toString();
       return thunkAPI.rejectWithValue(message);
@@ -93,9 +107,10 @@ export const changePassword = createAsyncThunk(
   }
 );
 
-// Logout user
+// Logout user - Updated to properly clean localStorage
 export const logout = createAsyncThunk('auth/logout', async () => {
   authService.logout();
+  return true; // Return something to trigger fulfilled case
 });
 
 // Add a new action to handle unauthorized errors
@@ -150,6 +165,20 @@ export const authSlice = createSlice({
         state.isError = true;
         state.message = action.payload;
         state.user = null;
+      })
+      // Delete account cases
+      .addCase(deleteAccount.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(deleteAccount.fulfilled, (state) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.user = null;
+      })
+      .addCase(deleteAccount.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
       })
       // Get profile cases
       .addCase(getProfile.pending, (state) => {
@@ -206,9 +235,15 @@ export const authSlice = createSlice({
         state.isError = true;
         state.message = action.payload;
       })
-      // Logout case
-      .addCase(logout.fulfilled, (state) => {
-        state.user = null;
+      // Logout case - UPDATED: Reset entire state to initial values
+      .addCase(logout.fulfilled, () => {
+        return {
+          user: null,
+          isLoading: false,
+          isSuccess: false,
+          isError: false,
+          message: '',
+        };
       })
       .addCase(handleAuthError.fulfilled, (state) => {
         state.user = null;

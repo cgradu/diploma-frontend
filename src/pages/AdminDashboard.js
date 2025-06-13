@@ -39,13 +39,92 @@ import {
 // Import admin components
 import DashboardOverview from '../components/admin/DashboardOverview';
 import UserManagement from '../components/admin/UserManagement';
+import CharityManagement from '../components/admin/CharityManagement';
+import ProjectManagement from '../components/admin/ProjectManagement';
+import DonationManagement from '../components/admin/DonationManagement';
+import BlockchainManagement from '../components/admin/BlockchainManagement';
+import Navbar from '../components/layout/Navbar';
+
 // Temporary placeholders for components we haven't created yet
-const CharityManagement = () => <Box sx={{ p: 3 }}><Typography>Charity Management - Coming Soon</Typography></Box>;
-const ProjectManagement = () => <Box sx={{ p: 3 }}><Typography>Project Management - Coming Soon</Typography></Box>;
-const DonationManagement = () => <Box sx={{ p: 3 }}><Typography>Donation Management - Coming Soon</Typography></Box>;
-const BlockchainManagement = () => <Box sx={{ p: 3 }}><Typography>Blockchain Management - Coming Soon</Typography></Box>;
-const AnalyticsPanel = () => <Box sx={{ p: 3 }}><Typography>Analytics Panel - Coming Soon</Typography></Box>;
-const ExportPanel = () => <Box sx={{ p: 3 }}><Typography>Export Panel - Coming Soon</Typography></Box>;
+const AnalyticsPanel = () => (
+  <Box sx={{ p: 3 }}>
+    <Typography variant="h6" gutterBottom>Analytics Dashboard</Typography>
+    <Grid container spacing={3}>
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" color="primary">Donation Trends</Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Advanced analytics and reporting features coming soon...
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" color="primary">Platform Insights</Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              User engagement and platform performance metrics...
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  </Box>
+);
+
+const ExportPanel = () => (
+  <Box sx={{ p: 3 }}>
+    <Typography variant="h6" gutterBottom>Data Export</Typography>
+    <Grid container spacing={2}>
+      <Grid item xs={12} sm={6} md={4}>
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1">User Data</Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Export user information and statistics
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Chip label="CSV" size="small" />
+              <Chip label="Excel" size="small" />
+              <Chip label="PDF" size="small" />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12} sm={6} md={4}>
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1">Donation Reports</Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Financial reports and transaction data
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Chip label="CSV" size="small" />
+              <Chip label="Excel" size="small" />
+              <Chip label="PDF" size="small" />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid item xs={12} sm={6} md={4}>
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1">Blockchain Data</Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Verification and transparency reports
+            </Typography>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Chip label="JSON" size="small" />
+              <Chip label="CSV" size="small" />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  </Box>
+);
 
 // Tab panel component
 function TabPanel({ children, value, index, ...other }) {
@@ -121,7 +200,7 @@ const AdminDashboard = () => {
     {
       label: 'Dashboard',
       icon: <DashboardIcon />,
-      component: <DashboardOverview />
+      component: <DashboardOverview onTabChange={handleTabChange} />
     },
     {
       label: 'Users',
@@ -179,6 +258,9 @@ const AdminDashboard = () => {
 
   return (
     <Box sx={{ flexGrow: 1, bgcolor: 'background.default', minHeight: '100vh' }}>
+      {/* Include Navbar */}
+      <Navbar />
+      
       {/* Header */}
       <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 2 }}>
         <Container maxWidth="xl">
@@ -367,4 +449,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;// src/pages/AdminDashboard.js
+export default AdminDashboard;

@@ -82,24 +82,12 @@ const updateUser = async (id, userData) => {
 
 const deleteUser = async (id, force = false) => {
   try {
-    const url = force ? `/admin/users/${id}?force=true` : `/admin/users/${id}`;
+    const url = force ? 
+      `/admin/users/${id}?force=true` : `/admin/users/${id}`;
     const response = await axios.delete(url);
     return response.data;
   } catch (error) {
     console.error(`Error deleting user ${id}:`, error);
-    throw error;
-  }
-};
-
-const transferCharityManagement = async (charityId, newManagerId) => {
-  try {
-    const response = await axios.post('/admin/charities/transfer', {
-      charityId,
-      newManagerId
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error transferring charity management:', error);
     throw error;
   }
 };
@@ -158,6 +146,44 @@ const deleteCharity = async (id) => {
     return response.data;
   } catch (error) {
     console.error(`Error deleting charity ${id}:`, error);
+    throw error;
+  }
+};
+
+const bulkDeleteCharities = async (charityIds) => {
+  try {
+    const response = await axios.delete('/admin/charities/bulk', { 
+      data: { charityIds } 
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error bulk deleting charities:', error);
+    throw error;
+  }
+};
+
+const bulkUpdateCharities = async (charityIds, updateData) => {
+  try {
+    const response = await axios.put('/admin/charities/bulk', { 
+      charityIds, 
+      updateData 
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error bulk updating charities:', error);
+    throw error;
+  }
+};
+
+const transferCharityManagement = async (charityId, newManagerId) => {
+  try {
+    const response = await axios.post('/admin/charities/transfer', {
+      charityId,
+      newManagerId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error transferring charity management:', error);
     throw error;
   }
 };
@@ -280,14 +306,8 @@ const advancedSearch = async (searchParams) => {
 // Export data
 const exportData = async (exportParams) => {
   try {
-    const queryParams = new URLSearchParams();
-    Object.entries(exportParams).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        queryParams.append(key, value);
-      }
-    });
-    
-    const response = await axios.get(`/admin/export?${queryParams.toString()}`, {
+    const response = await axios.get('/admin/export', {
+      params: exportParams,
       responseType: exportParams.format === 'csv' ? 'blob' : 'json'
     });
     
@@ -331,6 +351,8 @@ const adminService = {
   getAllCharitiesAdmin,
   updateCharityAdmin,
   deleteCharity,
+  bulkDeleteCharities,
+  bulkUpdateCharities,
   transferCharityManagement,
   
   // Projects

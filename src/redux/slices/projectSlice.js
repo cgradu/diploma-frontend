@@ -133,6 +133,18 @@ export const getProjectStatuses = createAsyncThunk(
   }
 );
 
+export const fetchActiveProjectsByCharity = createAsyncThunk(
+  'projects/fetchActiveByCharity',
+  async (charityId, { rejectWithValue }) => {
+    try {
+      const data = await projectService.getActiveProjectsByCharity(charityId);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
 // Project slice
 export const projectSlice = createSlice({
   name: 'projects',
@@ -315,6 +327,22 @@ export const projectSlice = createSlice({
         state.isLoading = false;
         state.isError = true;
         state.message = action.payload;
+      })
+      .addCase(fetchActiveProjectsByCharity.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchActiveProjectsByCharity.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        // THIS IS THE CRITICAL LINE - make sure it's correct:
+        state.activeProjects = action.payload; // or action.payload.data if needed
+        console.log('✅ Redux updated activeProjects:', action.payload);
+      })
+      .addCase(fetchActiveProjectsByCharity.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+        state.activeProjects = [];
       });
   }
 });

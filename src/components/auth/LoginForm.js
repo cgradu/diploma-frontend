@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { login, reset } from '../../redux/slices/authSlice';
 import {
   Box,
@@ -16,14 +16,16 @@ import {
   CircularProgress,
   Divider,
   useTheme,
-  alpha
+  alpha,
+  Backdrop
 } from '@mui/material';
 import {
   Email,
   Lock,
   Visibility,
   VisibilityOff,
-  LoginOutlined
+  LoginOutlined,
+  Dashboard as DashboardIcon
 } from '@mui/icons-material';
 
 const LoginForm = () => {
@@ -34,6 +36,7 @@ const LoginForm = () => {
   
   const [formErrors, setFormErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false); // Track redirect state
   
   // Enhanced alert state
   const [alert, setAlert] = useState({
@@ -45,6 +48,7 @@ const LoginForm = () => {
   
   const { email, password } = formData;
   const theme = useTheme();
+  const location = useLocation();
   
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -52,6 +56,9 @@ const LoginForm = () => {
   const { user, isLoading, isError, isSuccess, message } = useSelector(
     (state) => state.auth
   );
+  
+  // Get redirect URL from query params or default to dashboard
+  const redirectUrl = new URLSearchParams(location.search).get('redirect') || '/dashboard';
   
   // Function to show alert with optional title
   const showAlert = (message, type = 'error', title = '') => {
@@ -67,36 +74,64 @@ const LoginForm = () => {
   const hideAlert = () => {
     setAlert(prev => ({ ...prev, show: false }));
   };
-  
+
+  // 🔧 CLEAR STATE: Reset auth state when component mounts
   useEffect(() => {
-    if (isError) {
+    dispatch(reset());
+    hideAlert();
+  }, [dispatch]);
+
+  // 🔄 REDIRECT LOGIC: Handle successful authentication with loading state
+  useEffect(() => {
+    if (user !== null && user !== undefined) {
+      // User is authenticated, show redirect loading state
+      setIsRedirecting(true);
+      
+      // Small delay to show the redirect loading (800ms)
+      const timer = setTimeout(() => {
+        navigate(redirectUrl, { replace: true });
+      }, 800);
+
+      return () => clearTimeout(timer);
+    } else if (user === null) {
+      // User is explicitly not authenticated, ensure we're not redirecting
+      setIsRedirecting(false);
+    }
+    // Note: if user is undefined, we're still loading auth state
+  }, [user, navigate, redirectUrl]);
+  
+  // Handle auth errors - ONLY show errors, never success
+  useEffect(() => {
+    if (!isRedirecting && isError && message) {
       console.error(message);
-      // Show alert for login errors with specific titles
+      // Show alert ONLY for login errors
       if (message === 'Invalid credentials') {
-        showAlert('Invalid email or password. Please double-check your credentials and try again.', 'error', 'Login Failed');
+        showAlert(
+          'Invalid email or password. Please double-check your credentials and try again.', 
+          'error', 
+          'Login Failed'
+        );
       } else if (message && message.includes('Network')) {
-        showAlert('Unable to connect to the server. Please check your internet connection and try again.', 'error', 'Connection Error');
+        showAlert(
+          'Unable to connect to the server. Please check your internet connection and try again.', 
+          'error', 
+          'Connection Error'
+        );
       } else if (message && message.includes('429')) {
-        showAlert('Too many login attempts. Please wait a few minutes before trying again.', 'warning', 'Rate Limited');
+        showAlert(
+          'Too many login attempts. Please wait a few minutes before trying again.', 
+          'warning', 
+          'Rate Limited'
+        );
       } else {
         showAlert(message || 'Login failed. Please try again.', 'error', 'Error');
       }
     }
-    
-    // Redirect when logged in
-    if (isSuccess || user) {
-      showAlert('Welcome back! Redirecting to your dashboard...', 'success', 'Login Successful');
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
-    }
-    
-    dispatch(reset());
-  }, [user, isError, isSuccess, message, navigate, dispatch]);
+  }, [isError, message, isRedirecting]);
 
-  // Auto-hide alert after 5 seconds (except for success which redirects)
+  // Auto-hide alert after 5 seconds (only for errors and warnings)
   useEffect(() => {
-    if (alert.show && alert.type !== 'success') {
+    if (alert.show && (alert.type === 'error' || alert.type === 'warning')) {
       const timer = setTimeout(() => {
         hideAlert();
       }, 5000);
@@ -141,6 +176,8 @@ const LoginForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    if (isRedirecting) return; // Prevent form submission if redirecting
+    
     if (validateForm()) {
       hideAlert(); // Hide any existing alerts
       dispatch(login(formData));
@@ -152,6 +189,80 @@ const LoginForm = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  // Show loading/redirect overlay (simplified - no success message)
+  if (isRedirecting) {
+    return (
+      <Box sx={{ position: 'relative', width: '100%', minHeight: '400px' }}>
+        <Backdrop 
+          open 
+          sx={{ 
+            position: 'absolute',
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(2px)'
+          }}
+        >
+          <Box textAlign="center">
+            <CircularProgress size={60} color="primary" />
+            <Typography variant="h6" sx={{ mt: 2, color: theme.palette.primary.main }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                <DashboardIcon />
+                Redirecting...
+              </Box>
+            </Typography>
+          </Box>
+        </Backdrop>
+
+        {/* Show the form in background with reduced opacity */}
+        <Box sx={{ opacity: 0.3, pointerEvents: 'none' }}>
+          <LoginFormContent 
+            formData={formData}
+            formErrors={formErrors}
+            showPassword={showPassword}
+            alert={alert}
+            isLoading={isLoading}
+            theme={theme}
+            handleChange={handleChange}
+            handleSubmit={handleSubmit}
+            togglePasswordVisibility={togglePasswordVisibility}
+            hideAlert={hideAlert}
+          />
+        </Box>
+      </Box>
+    );
+  }
+
+  return (
+    <LoginFormContent 
+      formData={formData}
+      formErrors={formErrors}
+      showPassword={showPassword}
+      alert={alert}
+      isLoading={isLoading}
+      theme={theme}
+      handleChange={handleChange}
+      handleSubmit={handleSubmit}
+      togglePasswordVisibility={togglePasswordVisibility}
+      hideAlert={hideAlert}
+    />
+  );
+};
+
+// Extracted form content component to avoid duplication
+const LoginFormContent = ({ 
+  formData, 
+  formErrors, 
+  showPassword, 
+  alert, 
+  isLoading, 
+  theme, 
+  handleChange, 
+  handleSubmit, 
+  togglePasswordVisibility, 
+  hideAlert 
+}) => {
+  const { email, password } = formData;
 
   return (
     <Box component="div" sx={{ width: '100%' }}>
