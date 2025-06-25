@@ -33,7 +33,6 @@ import {
   Search,
   LocationOn,
   VolunteerActivism,
-  Verified,
   Security,
   ClearAll,
   ExpandMore,
@@ -174,25 +173,6 @@ const Charities = () => {
             height: 18 // Increased from 18 to 27
           }}
         />
-        
-        {/* Verification Badge */}
-        {charity.verified && (
-          <Chip
-            icon={<Verified sx={{ fontSize: 18 }} />} 
-            label="Verified"
-            size="small"
-            sx={{
-              position: 'absolute',
-              top: 9, // Increased from 6 to 9
-              right: 9, // Increased from 6 to 9
-              bgcolor: theme.palette.success.main,
-              color: '#ffffff',
-              fontWeight: 'bold',
-              fontSize: '0.8rem', // Increased from 0.65rem to 0.8rem
-              height: 27 // Increased from 18 to 27
-            }}
-          />
-        )}
       </Box>
 
       <CardContent sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column' }}> {/* Increased padding from 2 to 3 */}

@@ -6,7 +6,7 @@ import authService from '../services/authService';
 const user = JSON.parse(localStorage.getItem('user'));
 
 const initialState = {
-  user: JSON.parse(localStorage.getItem('user')) || null,
+  user: user || null,
   token: localStorage.getItem('token') || null,
   isLoading: false,
   isSuccess: false,
@@ -237,6 +237,7 @@ export const authSlice = createSlice({
       })
       // Logout case - UPDATED: Reset entire state to initial values
       .addCase(logout.fulfilled, () => {
+        reset();
         return {
           user: null,
           isLoading: false,
@@ -244,6 +245,7 @@ export const authSlice = createSlice({
           isError: false,
           message: '',
         };
+
       })
       .addCase(handleAuthError.fulfilled, (state) => {
         state.user = null;

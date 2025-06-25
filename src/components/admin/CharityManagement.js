@@ -495,12 +495,12 @@ const CharityManagement = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {charity.projectsCount || 0}
+                        {charity._count.projects || 0}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="primary">
-                        ${(charity.totalDonations || 0).toLocaleString()}
+                        {(charity._count.donations || 0).toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell>

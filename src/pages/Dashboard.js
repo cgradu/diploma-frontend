@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { getProfile } from '../redux/slices/authSlice';
@@ -67,10 +67,12 @@ import {
 } from '@mui/icons-material';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
+import AdminDashboard from './AdminDashboard'; // Assuming you have an AdminDashboard component
 
 const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const hasInitialized = useRef(false);
   const theme = useTheme();
   
   // Get user from auth state
@@ -109,7 +111,9 @@ const Dashboard = () => {
   if (user && !user.name) {
     dispatch(getProfile());
   }
-}, [user, navigate, dispatch]);
+
+  hasInitialized.current = true;
+}, []);
 
   // Add this useEffect in your Dashboard component
   useEffect(() => {
@@ -121,7 +125,7 @@ const Dashboard = () => {
   // Fetch charity-specific data when user is a charity manager
   useEffect(() => {
     const fetchCharityData = async () => {
-      if (user && (user.role === 'charity') && !isCharityDataFetched) {
+      if (!managerCharity && (user.role === 'charity') && !isCharityDataFetched) {
         setisCharityDataFetched(true);
         
         try {
@@ -144,7 +148,15 @@ const Dashboard = () => {
     };
     
     fetchCharityData();
-  }, [user, dispatch, isCharityDataFetched]);
+  }, [user?.role, managerCharity, isCharityDataFetched, dispatch]);
+
+  useEffect(() => {
+  // Redirect admin users to /admin route
+  if (user?.role === 'admin') {
+    navigate('/admin', { replace: true });
+    return;
+  }
+}, [user, navigate]);
   
   // Function to check if charity profile is complete
   const isProfileComplete = () => {
@@ -439,7 +451,7 @@ const DonorDashboard = () => {
             </Typography>
             <Button
               component={Link}
-              to="/donations/history"
+              to={`/donor/stats/${user.id}`}
               endIcon={<Launch />}
               sx={{ textTransform: 'none' }}
             >
@@ -525,7 +537,7 @@ const DonorDashboard = () => {
             </Button>
             <Button
               component={Link}
-              to="/donations/history"
+              to="/donation/stats/${user.id}"
               variant="outlined"
               size="large"
               startIcon={<Timeline />}
@@ -843,480 +855,6 @@ const DonorDashboard = () => {
           )}
         </Paper>
       )}
-    </Stack>
-  );
-
-  const AdminDashboard = () => (
-    <Stack spacing={4}>
-      {/* Welcome Section */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 4,
-          borderRadius: 3,
-          background: `linear-gradient(135deg, ${alpha(theme.palette.error.main, 0.1)} 0%, ${alpha(theme.palette.warning.main, 0.05)} 100%)`,
-          border: `1px solid ${alpha(theme.palette.error.main, 0.2)}`
-        }}
-      >
-        <Stack direction="row" spacing={3} alignItems="center">
-          <Avatar
-            sx={{
-              width: 80,
-              height: 80,
-              bgcolor: theme.palette.error.main,
-              fontSize: '2rem',
-              fontWeight: 'bold'
-            }}
-          >
-            <AdminPanelSettings sx={{ fontSize: '2.5rem' }} />
-          </Avatar>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
-              Admin Control Center 🛡️
-            </Typography>
-            <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-              Manage the entire Charitrace platform
-            </Typography>
-            <Stack direction="row" spacing={2}>
-              <Chip
-                icon={<AdminPanelSettings />}
-                label="System Administrator"
-                color="error"
-                sx={{ fontWeight: 'bold' }}
-              />
-              <Chip
-                icon={<Security />}
-                label="Full Access"
-                variant="outlined"
-                color="warning"
-              />
-            </Stack>
-          </Box>
-          <Button
-            component={Link}
-            to="/admin/system/health"
-            variant="contained"
-            size="large"
-            startIcon={<Speed />}
-            color="error"
-            sx={{
-              py: 1.5,
-              px: 4,
-              borderRadius: 3,
-              fontWeight: 'bold',
-              boxShadow: theme.shadows[4],
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: theme.shadows[8]
-              }
-            }}
-          >
-            System Health
-          </Button>
-        </Stack>
-      </Paper>
-
-      {/* Admin Stats */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            icon={<SupervisedUserCircle />}
-            title="Total Users"
-            value="Loading..."
-            subtitle="All registered users"
-            color="primary"
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            icon={<BusinessCenter />}
-            title="Active Charities"
-            value="Loading..."
-            subtitle="Verified organizations"
-            color="secondary"
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard
-            icon={<MonetizationOn />}
-            title="Total Donations"
-            value="Loading..."
-            subtitle="Platform-wide"
-            color="success"
-          />
-        </Grid>
-      </Grid>
-
-      {/* Admin Actions Grid */}
-      <Grid container spacing={3}>
-        {/* User Management */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
-            <Stack spacing={3}>
-              <Box>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: theme.palette.primary.main }}>
-                    <People />
-                  </Avatar>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    User Management
-                  </Typography>
-                </Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Manage all users, roles, and permissions
-                </Typography>
-              </Box>
-              
-              <List sx={{ p: 0 }}>
-                <ListItemButton component={Link} to="/admin/users" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <SupervisedUserCircle color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="All Users" 
-                    secondary="View, edit, and manage users"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/users?role=donor" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <Favorite color="secondary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Donors" 
-                    secondary="Manage donor accounts"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/users?role=charity" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <Business color="success" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Charity Managers" 
-                    secondary="Manage charity accounts"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/users/create" sx={{ borderRadius: 2 }}>
-                  <ListItemIcon>
-                    <GroupAdd color="info" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Create User" 
-                    secondary="Add new user account"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-              </List>
-            </Stack>
-          </Paper>
-        </Grid>
-
-        {/* Charity Management */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
-            <Stack spacing={3}>
-              <Box>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: alpha(theme.palette.secondary.main, 0.1), color: theme.palette.secondary.main }}>
-                    <BusinessCenter />
-                  </Avatar>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Charity Management
-                  </Typography>
-                </Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Oversee charity verification and management
-                </Typography>
-              </Box>
-              
-              <List sx={{ p: 0 }}>
-                <ListItemButton component={Link} to="/admin/charities" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <BusinessCenter color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="All Charities" 
-                    secondary="View and manage charities"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/charities?status=pending" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <Warning color="warning" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Pending Verification" 
-                    secondary="Review charity applications"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/charities/transfer" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <Person color="info" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Transfer Management" 
-                    secondary="Transfer charity ownership"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/projects" sx={{ borderRadius: 2 }}>
-                  <ListItemIcon>
-                    <Assignment color="success" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="All Projects" 
-                    secondary="Manage charity projects"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-              </List>
-            </Stack>
-          </Paper>
-        </Grid>
-
-        {/* Financial Management */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
-            <Stack spacing={3}>
-              <Box>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: alpha(theme.palette.success.main, 0.1), color: theme.palette.success.main }}>
-                    <MonetizationOn />
-                  </Avatar>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    Financial Oversight
-                  </Typography>
-                </Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Monitor donations and financial activity
-                </Typography>
-              </Box>
-              
-              <List sx={{ p: 0 }}>
-                <ListItemButton component={Link} to="/admin/donations" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <MonetizationOn color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="All Donations" 
-                    secondary="View donation history"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/donations?status=failed" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <Warning color="error" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Failed Payments" 
-                    secondary="Review payment issues"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/analytics" sx={{ borderRadius: 2 }}>
-                  <ListItemIcon>
-                    <TrendingUp color="success" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Financial Analytics" 
-                    secondary="View detailed reports"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-              </List>
-            </Stack>
-          </Paper>
-        </Grid>
-
-        {/* System Management */}
-        <Grid item xs={12} md={6}>
-          <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}`, height: '100%' }}>
-            <Stack spacing={3}>
-              <Box>
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2 }}>
-                  <Avatar sx={{ bgcolor: alpha(theme.palette.info.main, 0.1), color: theme.palette.info.main }}>
-                    <Settings />
-                  </Avatar>
-                  <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                    System Management
-                  </Typography>
-                </Stack>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Platform administration and reporting
-                </Typography>
-              </Box>
-              
-              <List sx={{ p: 0 }}>
-                <ListItemButton component={Link} to="/admin/system/health" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <Speed color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="System Health" 
-                    secondary="Monitor platform status"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/analytics" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <Analytics color="secondary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Platform Analytics" 
-                    secondary="Comprehensive platform stats"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/export" sx={{ borderRadius: 2, mb: 1 }}>
-                  <ListItemIcon>
-                    <CloudDownload color="info" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Export Data" 
-                    secondary="Download platform data"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-                
-                <ListItemButton component={Link} to="/admin/search" sx={{ borderRadius: 2 }}>
-                  <ListItemIcon>
-                    <Assessment color="success" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary="Advanced Search" 
-                    secondary="Search across all entities"
-                    primaryTypographyProps={{ fontWeight: 'medium' }}
-                  />
-                </ListItemButton>
-              </List>
-            </Stack>
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Quick Admin Actions */}
-      <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
-          Quick Actions
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              component={Link}
-              to="/admin/users/create"
-              fullWidth
-              variant="contained"
-              size="large"
-              startIcon={<GroupAdd />}
-              sx={{
-                py: 2,
-                borderRadius: 2,
-                fontWeight: 'bold',
-                bgcolor: theme.palette.primary.main,
-                '&:hover': {
-                  bgcolor: theme.palette.primary.dark
-                }
-              }}
-            >
-              Create User
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              component={Link}
-              to="/admin/verifications?verified=false"
-              fullWidth
-              variant="contained"
-              size="large"
-              startIcon={<VerifiedUser />}
-              sx={{
-                py: 2,
-                borderRadius: 2,
-                fontWeight: 'bold',
-                bgcolor: theme.palette.warning.main,
-                '&:hover': {
-                  bgcolor: theme.palette.warning.dark
-                }
-              }}
-            >
-              Pending Verifications
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              component={Link}
-              to="/admin/export?entity=donations&format=csv"
-              fullWidth
-              variant="outlined"
-              size="large"
-              startIcon={<CloudDownload />}
-              sx={{
-                py: 2,
-                borderRadius: 2,
-                fontWeight: 'bold'
-              }}
-            >
-              Export Reports
-            </Button>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              component={Link}
-              to="/admin/system/health"
-              fullWidth
-              variant="outlined"
-              size="large"
-              startIcon={<Speed />}
-              sx={{
-                py: 2,
-                borderRadius: 2,
-                fontWeight: 'bold'
-              }}
-            >
-              System Status
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
-
-      {/* Admin Alerts */}
-      <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: `1px solid ${theme.palette.divider}` }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
-          System Alerts
-        </Typography>
-        <Stack spacing={2}>
-          <Alert severity="info" sx={{ borderRadius: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              System Status: Operational
-            </Typography>
-            <Typography variant="body2">
-              All services are running normally. Last system check: {new Date().toLocaleString()}
-            </Typography>
-          </Alert>
-          
-          <Alert severity="warning" sx={{ borderRadius: 2 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-              Pending Reviews
-            </Typography>
-            <Typography variant="body2">
-              There are charity applications and blockchain verifications awaiting admin review.
-            </Typography>
-          </Alert>
-        </Stack>
-      </Paper>
     </Stack>
   );
   

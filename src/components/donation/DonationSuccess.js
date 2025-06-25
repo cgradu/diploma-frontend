@@ -1,5 +1,5 @@
 // src/components/donation/DonationSuccess.js
-import React, { useState } from 'react';
+import React, { useState, useSelector } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Box,
@@ -44,6 +44,7 @@ const currencyConfig = {
 
 const DonationSuccess = ({ donation }) => {
   const theme = useTheme();
+  const { user } = useSelector((state) => state.auth);
   const [showBlockchainDetails, setShowBlockchainDetails] = useState(false);
   const [showTransactionDetails, setShowTransactionDetails] = useState(false);
 
@@ -150,7 +151,7 @@ const DonationSuccess = ({ donation }) => {
 
       <Grid container spacing={3}>
         {/* Donation Details */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} width={{ xs: '100%' }}>
           <Grow in timeout={1200}>
             <Card variant="outlined" sx={{ height: '100%' }}>
               <CardContent>
@@ -283,7 +284,7 @@ const DonationSuccess = ({ donation }) => {
         </Grid>
 
         {/* Blockchain Verification */}
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} width={{ xs: '100%' }}>
           <Grow in timeout={1400}>
             <Card 
               variant="outlined" 
@@ -399,7 +400,7 @@ const DonationSuccess = ({ donation }) => {
 
         {/* Message Display */}
         {donation.message && (
-          <Grid item xs={12}>
+          <Grid item xs={12} width={{ xs: '100%' }}>
             <Fade in timeout={1600}>
               <Card variant="outlined">
                 <CardContent>
@@ -442,7 +443,7 @@ const DonationSuccess = ({ donation }) => {
         )}
 
         {/* Action Buttons */}
-        <Grid item xs={12}>
+        <Grid item xs={12} width={{ xs: '100%' }}>
           <Fade in timeout={1800}>
             <Card variant="outlined">
               <CardContent>
@@ -450,7 +451,7 @@ const DonationSuccess = ({ donation }) => {
                   What's Next?
                 </Typography>
                 
-                <Grid container spacing={2} sx={{ mt: 2 }}>
+                <Grid container spacing={2} sx={{ mt: 2, justifyContent: 'center' }}>
                   <Grid item xs={12} sm={6} md={3}>
                     <Button
                       fullWidth
@@ -473,41 +474,15 @@ const DonationSuccess = ({ donation }) => {
                       variant="outlined"
                       startIcon={<HistoryIcon />}
                       component={Link}
-                      to="/donations/history"
+                      to={`/donation/stats/${user.id}`}
                       sx={{ py: 1.5 }}
                     >
                       Donation History
                     </Button>
                   </Grid>
-                  
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      startIcon={<TimelineIcon />}
-                      component={Link}
-                      to="/impact"
-                      sx={{ py: 1.5 }}
-                    >
-                      Track Impact
-                    </Button>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Button
-                      fullWidth
-                      variant="outlined"
-                      startIcon={<ShareIcon />}
-                      onClick={handleShare}
-                      sx={{ py: 1.5 }}
-                    >
-                      Share
-                    </Button>
-                  </Grid>
                 </Grid>
 
                 <Divider sx={{ my: 3 }} />
-
                 <Box textAlign="center">
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     Want to make another donation?
@@ -516,8 +491,10 @@ const DonationSuccess = ({ donation }) => {
                     variant="contained"
                     size="large"
                     startIcon={<CelebrationIcon />}
-                    component={Link}
-                    to="/donate"
+                    onClick={() => {
+                      // Force page reload to reset all state
+                      window.location.href = '/donate';
+                    }}
                     sx={{ 
                       mt: 1,
                       py: 1.5,

@@ -95,24 +95,32 @@ const PaymentForm = ({ amount = 0, currency = 'RON', donationId, onSuccess, onBa
   
   return (
     <Box>
-      {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={onBack}
-          sx={{ mb: 2 }}
-          color="primary"
-        >
-          Back to donation details
-        </Button>
-        
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          Complete Your Payment
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Your donation will be processed securely through Stripe
-        </Typography>
-      </Box>
+{/* Header */}
+<Box sx={{ mb: 3 }}>
+  <Button
+    startIcon={<ArrowBackIcon />}
+    onClick={onBack}
+    sx={{ mb: 2 }}
+    color="primary"
+  >
+    Back to donation details
+  </Button>
+  <Typography 
+    variant="h5" 
+    fontWeight="bold" 
+    gutterBottom
+    sx={{ textAlign: 'center' }}
+  >
+    Complete Your Payment
+  </Typography>
+  <Typography 
+    variant="body1" 
+    color="text.secondary"
+    sx={{ textAlign: 'center' }}
+  >
+    Your donation will be processed securely through Stripe
+  </Typography>
+</Box>
 
       {/* Donation Summary */}
       <Card 
@@ -182,7 +190,7 @@ const PaymentForm = ({ amount = 0, currency = 'RON', donationId, onSuccess, onBa
       <form onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           {/* Card Information */}
-          <Grid item xs={12}>
+          <Grid item xs={12} width={{ xs: '100%' }}>
             <Card variant="outlined">
               <CardContent>
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
@@ -220,7 +228,7 @@ const PaymentForm = ({ amount = 0, currency = 'RON', donationId, onSuccess, onBa
           </Grid>
 
           {/* Billing Address */}
-          <Grid item xs={12}>
+          <Grid item xs={12} width={{ xs: '100%' }}>
             <Card variant="outlined">
               <CardContent>
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
@@ -254,7 +262,7 @@ const PaymentForm = ({ amount = 0, currency = 'RON', donationId, onSuccess, onBa
           </Grid>
 
           {/* Security Information */}
-          <Grid item xs={12}>
+          <Grid item xs={12} width={{ xs: '100%' }}>
             <Card variant="outlined">
               <CardContent>
                 <Button
@@ -325,7 +333,7 @@ const PaymentForm = ({ amount = 0, currency = 'RON', donationId, onSuccess, onBa
           )}
 
           {/* Submit Button */}
-          <Grid item xs={12}>
+          <Grid item xs={12} width={{ xs: '100%' }}>
             <Box sx={{ position: 'relative' }}>
               {isProcessing && (
                 <LinearProgress 

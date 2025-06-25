@@ -253,7 +253,7 @@ const statsSlice = createSlice({
 });
 
 // Export actions
-export const { 
+export const {
     clearStats, 
     clearDonorStats, 
     clearCharityStats, 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux'; // NEW: Redux imports
+import { useSelector, useDispatch } from 'react-redux';
 import {
   Box,
   Container,
@@ -16,7 +16,12 @@ import {
   useTheme,
   alpha,
   Divider,
-  CircularProgress
+  CircularProgress,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Avatar
 } from '@mui/material';
 import {
   Visibility,
@@ -28,23 +33,35 @@ import {
   AccountBalance,
   Groups,
   ArrowForward,
-  PlayArrow
+  PlayArrow,
+  Analytics,
+  MonetizationOn,
+  Timeline,
+  CheckCircle,
+  Schedule
 } from '@mui/icons-material';
 import Navbar from '../components/layout/Navbar';
 import Footer from '../components/layout/Footer';
-// NEW: Import Redux actions and selectors
 import { fetchHomepageStats, selectHomepageStats } from '../redux/slices/statsSlice';
 
 const Home = () => {
   const theme = useTheme();
-  const dispatch = useDispatch(); // NEW: Redux dispatch
-  const { data: statsData, loading: statsLoading } = useSelector(selectHomepageStats); // NEW: Redux selector
+  const dispatch = useDispatch();
+  const { data: statsData, loading: statsLoading } = useSelector(selectHomepageStats);
   
   const [latestDonation, setLatestDonation] = useState(null);
 
-  // NEW: Fetch platform statistics using Redux
   useEffect(() => {
-    // Only fetch if we don't have recent data
+    if (statsData) {
+      console.log('📊 Complete Stats Data Structure:', statsData);
+      console.log('📊 Totals:', statsData.totals);
+      console.log('📊 Blockchain:', statsData.blockchain);
+      console.log('📊 Recent Donations:', statsData.recent);
+      console.log('📊 Top Charities:', statsData.topCharities);
+    }
+  }, [statsData]);
+
+  useEffect(() => {
     if (!statsData || (statsData.lastUpdated && 
         (new Date() - new Date(statsData.lastUpdated)) > 5 * 60 * 1000)) {
       console.log('🔄 Homepage: Fetching fresh stats via Redux...');
@@ -52,21 +69,9 @@ const Home = () => {
     }
   }, [dispatch, statsData]);
 
-  // Fetch latest donation for real-time display
   useEffect(() => {
-    const fetchLatestDonation = async () => {
-      try {
-        // Get the most recent donation from our existing stats
-        if (statsData?.recent && statsData.recent.length > 0) {
-          setLatestDonation(statsData.recent[0]);
-        }
-      } catch (error) {
-        console.error('Error setting latest donation:', error);
-      }
-    };
-
-    if (statsData) {
-      fetchLatestDonation();
+    if (statsData?.recent && statsData.recent.length > 0) {
+      setLatestDonation(statsData.recent[statsData.recent.length - 1]);
     }
   }, [statsData]);
 
@@ -78,12 +83,6 @@ const Home = () => {
       highlight: "100% Traceable"
     },
     {
-      icon: <TrackChanges sx={{ fontSize: 40, color: theme.palette.secondary.main }} />,
-      title: "Real-Time Tracking",
-      description: "Watch your donations work in real-time with live updates and milestone notifications as projects progress.",
-      highlight: "Live Updates"
-    },
-    {
       icon: <VerifiedUser sx={{ fontSize: 40, color: theme.palette.success.main }} />,
       title: "Verified Impact",
       description: "All charities are thoroughly vetted and impact metrics are independently verified for maximum trust.",
@@ -92,42 +91,135 @@ const Home = () => {
   ];
 
   const formatCurrency = (amount) => {
+    if (!amount) return 'RON 0';
     if (amount >= 1000000) {
       return `RON ${(amount / 1000000).toFixed(1)}M`;
     } else if (amount >= 1000) {
       return `RON ${(amount / 1000).toFixed(1)}K`;
     }
-    return `RON ${amount}`;
+    return `RON ${amount.toLocaleString()}`;
   };
 
   const formatNumber = (num) => {
+    if (!num) return '0';
     if (num >= 1000) {
       return `${(num / 1000).toFixed(1)}K+`;
     }
     return `${num}+`;
   };
 
-  // NEW: Use Redux data for platform stats
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Unknown date';
+    
+    let date;
+    
+    // Handle Unix timestamp (blockchain) - seconds to milliseconds
+    if (typeof timestamp === 'number' || (typeof timestamp === 'string' && /^\d{10}$/.test(timestamp))) {
+      const timestampNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+      date = new Date(timestampNum * 1000);
+    }
+    // Handle database timestamp string - assume UTC and convert to Romanian time
+    else if (typeof timestamp === 'string') {
+      // Add Z if not present to indicate UTC
+      const utcTimestamp = timestamp.includes('Z') || timestamp.includes('+') ? timestamp : timestamp + 'Z';
+      date = new Date(utcTimestamp);
+    }
+    // Handle Date object
+    else {
+      date = new Date(timestamp);
+    }
+    
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    
+    // Return in Romanian timezone with Romanian locale
+    return date.toLocaleString('ro-RO', {
+      timeZone: 'Europe/Bucharest',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatTimestampFull = (timestamp) => {
+    if (!timestamp) return 'Unknown date';
+    
+    let date;
+    
+    if (typeof timestamp === 'number' || (typeof timestamp === 'string' && /^\d{10}$/.test(timestamp))) {
+      const timestampNum = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+      date = new Date(timestampNum * 1000);
+    } else if (typeof timestamp === 'string') {
+      const utcTimestamp = timestamp.includes('Z') || timestamp.includes('+') ? timestamp : timestamp + 'Z';
+      date = new Date(utcTimestamp);
+    } else {
+      date = new Date(timestamp);
+    }
+    
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    
+    // Full Romanian format with seconds
+    return date.toLocaleString('ro-RO', {
+      timeZone: 'Europe/Bucharest',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
   const platformStats = [
     { 
       label: "Verified Charities", 
       value: statsLoading ? '...' : formatNumber(statsData?.totals?.totalCharities || 0), 
-      icon: <AccountBalance /> 
+      icon: <AccountBalance />,
+      subtext: "All have blockchain verification"
     },
     { 
       label: "Total Donated", 
       value: statsLoading ? '...' : formatCurrency(statsData?.totals?.totalAmount || 0), 
-      icon: <TrendingUp /> 
+      icon: <TrendingUp />,
+      subtext: `Avg: ${formatCurrency(statsData?.totals?.averageDonation || 0)}`
     },
     { 
       label: "Active Donors", 
       value: statsLoading ? '...' : formatNumber(statsData?.totals?.totalDonors || 0), 
-      icon: <Groups /> 
+      icon: <Groups />,
+      subtext: `${statsData?.totals?.totalDonations || 0} total donations`
     },
     { 
       label: "Blockchain Verified", 
       value: statsLoading ? '...' : `${statsData?.blockchain?.verificationRate || 0}%`, 
-      icon: <Security /> 
+      icon: <Security />,
+      subtext: `${statsData?.blockchain?.verifiedCount || 0} transactions`
+    }
+  ];
+
+  const blockchainStats = [
+    {
+      label: "Verified Transactions",
+      value: statsData?.blockchain?.verifiedCount || 0,
+      icon: <CheckCircle sx={{ color: theme.palette.success.main }} />,
+      color: 'success'
+    },
+    {
+      label: "Pending Verification", 
+      value: statsData?.blockchain?.pendingCount || 0,
+      icon: <Schedule sx={{ color: theme.palette.warning.main }} />,
+      color: 'warning'
+    },
+    {
+      label: "Verification Rate",
+      value: `${statsData?.blockchain?.verificationRate || 0}%`,
+      icon: <Analytics sx={{ color: theme.palette.info.main }} />,
+      color: 'info'
     }
   ];
 
@@ -241,22 +333,8 @@ const Home = () => {
                       transition: 'all 0.2s ease-in-out'
                     }}
                   >
-                    Charities
+                    Explore Charities
                   </Button>
-                </Stack>
-
-                {/* Trust Indicators */}
-                <Stack direction="row" spacing={4} sx={{ pt: 2 }}>
-                  {platformStats.slice(0, 2).map((stat, index) => (
-                    <Box key={index} sx={{ textAlign: 'center' }}>
-                      <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 0.5, color: theme.palette.primary.main }}>
-                        {statsLoading ? <CircularProgress size={20} /> : stat.value}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                        {stat.label}
-                      </Typography>
-                    </Box>
-                  ))}
                 </Stack>
               </Stack>
             </Grid>
@@ -298,6 +376,8 @@ const Home = () => {
                       </Typography>
                     </Box>
                     <Divider sx={{ borderColor: theme.palette.divider }} />
+                    
+                    {/* Latest Donation */}
                     <Box>
                       <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
                         Latest Donation
@@ -308,20 +388,44 @@ const Home = () => {
                             {formatCurrency(latestDonation.amount)} → {latestDonation.charity?.name || 'General Fund'}
                           </Typography>
                           <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                            {latestDonation.blockchainVerification?.verified ? 'Verified on blockchain' : 'Processing verification'} • {new Date(latestDonation.createdAt).toLocaleString()}
+                          {formatTimestampFull(latestDonation.timestamp || latestDonation.createdAt)}
                           </Typography>
                         </>
                       ) : (
                         <>
                           <Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}>
-                            {statsLoading ? 'Loading latest donation...' : 'No recent donations'}
+                            {statsLoading ? 'Loading...' : 'No recent donations'}
                           </Typography>
                           <Typography variant="body2" sx={{ color: theme.palette.text.secondary }}>
-                            {statsLoading && <CircularProgress size={12} sx={{ mr: 1 }} />}
                             {statsLoading ? 'Loading real-time data' : 'Check back soon for updates'}
                           </Typography>
                         </>
                       )}
+                    </Box>
+
+                    {/* Platform Metrics */}
+                    <Box>
+                      <Typography variant="body2" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
+                        Platform Metrics
+                      </Typography>
+                      <Stack direction="row" spacing={3}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
+                            {formatCurrency(statsData?.totals?.averageDonation || 0)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                            Avg Donation
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold', color: theme.palette.success.main }}>
+                            {statsData?.blockchain?.verificationRate || 0}%
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: theme.palette.text.secondary }}>
+                            Verified
+                          </Typography>
+                        </Box>
+                      </Stack>
                     </Box>
                   </Stack>
                 </Paper>
@@ -331,7 +435,7 @@ const Home = () => {
         </Container>
       </Box>
 
-      {/* Stats Section - Updated to use Redux data */}
+      {/* Enhanced Stats Section */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Grid container spacing={3}>
           {platformStats.map((stat, index) => (
@@ -365,17 +469,117 @@ const Home = () => {
                 <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>
                   {statsLoading ? <CircularProgress size={24} /> : stat.value}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                   {stat.label}
                 </Typography>
+                {stat.subtext && (
+                  <Typography variant="caption" color="text.secondary">
+                    {stat.subtext}
+                  </Typography>
+                )}
               </Paper>
             </Grid>
           ))}
         </Grid>
       </Container>
 
+      {/* Blockchain Statistics Section */}
+      <Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02), py: 8 }}>
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 2 }}>
+              Blockchain Transparency
+            </Typography>
+            <Typography variant="h6" color="text.secondary">
+              Real-time verification ensuring every donation is tracked and transparent
+            </Typography>
+          </Box>
+
+          <Grid container spacing={4}>
+            {/* Blockchain Stats */}
+            <Grid item xs={12} md={8}>
+              <Grid container spacing={3}>
+                {blockchainStats.map((stat, index) => (
+                  <Grid item xs={6} md={3} key={index}>
+                    <Paper
+                      elevation={0}
+                      sx={{
+                        p: 3,
+                        textAlign: 'center',
+                        borderRadius: 3,
+                        border: `1px solid ${theme.palette.divider}`,
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: theme.shadows[4]
+                        }
+                      }}
+                    >
+                      {stat.icon}
+                      <Typography variant="h5" sx={{ fontWeight: 'bold', mt: 1, mb: 0.5 }}>
+                        {stat.value}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {stat.label}
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
+
+            {/* Recent Donations */}
+            <Grid item xs={12} md={4}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: `1px solid ${theme.palette.divider}`,
+                  height: '100%'
+                }}
+              >
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                  Recent Donations
+                </Typography>
+                <List sx={{ p: 0 }}>
+                  {statsData?.recent?.slice(-5).reverse().map((donation, index) => (
+                <ListItem key={index} sx={{ px: 0, py: 1 }}>
+                  <ListItemIcon>
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        bgcolor: theme.palette.success.main,
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      ✓
+                    </Avatar>
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={formatCurrency(donation.amount)}
+                    secondary={`${donation.charity?.name || 'Anonymous'} • ${formatTimestamp(donation.timestamp || donation.createdAt)}`}
+                    primaryTypographyProps={{ fontWeight: 'medium' }}
+                    secondaryTypographyProps={{ fontSize: '0.75rem' }}
+                  />
+                </ListItem>
+              )) || (
+                    <ListItem>
+                      <ListItemText 
+                        primary="No recent donations"
+                        secondary="Check back soon for updates"
+                      />
+                    </ListItem>
+                  )}
+                </List>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
+
       {/* Features Section */}
-      <Box sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02), py: 10 }}>
+      <Box sx={{ py: 10 }}>
         <Container maxWidth="lg">
           <Box sx={{ textAlign: 'center', mb: 8 }}>
             <Typography
@@ -522,5 +726,6 @@ const Home = () => {
     </Box>
   );
 };
+
 
 export default Home;

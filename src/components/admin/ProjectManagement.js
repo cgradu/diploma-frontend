@@ -91,6 +91,7 @@ const ProjectManagement = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
+
   // Form state for edit project
   const [formData, setFormData] = useState({
     title: '',

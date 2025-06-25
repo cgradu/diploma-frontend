@@ -22,7 +22,7 @@ const donationService = {
   
   // Get donation history for the current user
   getDonationHistory: async () => {
-    const response = await axios.get('/donations/history');
+    const response = await axios.get('/donation/stats/${user.id}');
     return response.data;
   },
   

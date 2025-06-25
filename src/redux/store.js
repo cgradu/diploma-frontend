@@ -13,7 +13,7 @@ export const store = configureStore({
     auth: authReducer,
     charities: charityReducer,
     donations: donationReducer,
-    donationsHistory: donationHistorySlice,
+    // donationsHistory: donationHistorySlice,
     projects: projectReducer,
     admin: adminReducer, // Add admin reducer
     stats: statsReducer, // Add stats reducer

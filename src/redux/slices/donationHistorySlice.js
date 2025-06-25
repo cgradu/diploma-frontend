@@ -45,7 +45,7 @@ export const fetchDonationHistory = createAsyncThunk(
       if (endDate) queryParams.append('endDate', endDate);
       if (verified !== undefined) queryParams.append('verified', verified.toString());
 
-      const response = await fetch(`${API_BASE_URL}/donations/history?${queryParams}`, {
+      const response = await fetch(`${API_BASE_URL}/donation/stats?${queryParams}`, {
         method: 'GET',
         headers: getAuthHeaders(getState)
       });

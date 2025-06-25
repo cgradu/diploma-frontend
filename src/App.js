@@ -15,10 +15,13 @@ import PrivateRoute from './components/common/PrivateRoute';
 import Charities from './pages/Charities';
 import CharityProfilePage from './pages/CharityProfile';
 import DonationPage from './pages/DonationPage';
-import DonationHistoryPage from './pages/DonationHistory';
 import DonationDetailPage from './pages/DonationDetailPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import CharityProjectsPage from './pages/CharityProjectsPage';
+
+// Stats Pages - Fixed imports
+import DonorStatsPage from './pages/DonorStatsPage';
+import CharityStatsPage from './pages/CharityStatsPage';
 
 // Admin Pages
 import AdminDashboard from './pages/AdminDashboard';
@@ -79,13 +82,16 @@ const App = () => {
             <Route path="/donate" element={<DonationPage />} />
             <Route path="/donate/charity/:charityId" element={<DonationPage />} />
             <Route path="/donate/project/:projectId" element={<DonationPage />} />
-            <Route path="/donations/history" element={<DonationHistoryPage />} />
             <Route path="/donations/:id" element={<DonationDetailPage />} />
             <Route path="/projects/:id" element={<ProjectDetailPage />} />
+
+            {/* Stats Routes - Public access for now, can be made private later */}
+            <Route path="/donor/stats/:donorId" element={<DonorStatsPage />} />
+            <Route path="/charity/stats/:charityId" element={<CharityStatsPage />} />
             
             {/* Protected User Routes */}
             <Route 
-              path="/dashboard" 
+              path="/dashboard"
               element={
                 <PrivateRoute>
                   <DashboardPage />
@@ -104,10 +110,11 @@ const App = () => {
               path="/my-donations" 
               element={
                 <PrivateRoute requiredRole="donor">
-                  <DonationHistoryPage />
+                  <DonorStatsPage />
                 </PrivateRoute>
               } 
             />
+            
             {/* Admin Routes */}
             <Route 
               path="/admin/*" 

@@ -39,7 +39,8 @@ import {
   AdminPanelSettings,
   History,
   AccountBalanceWallet,
-  Assignment // Add this icon for projects
+  Assignment,
+  Analytics
 } from '@mui/icons-material';
 
 const Navbar = () => {
@@ -88,13 +89,20 @@ const Navbar = () => {
     return <Dashboard sx={{ fontSize: 28 }} />;
   };
 
-  // Get charity projects path (assuming you have managedCharity in user object)
+  // Get charity projects path
   const getCharityProjectsPath = () => {
     if (user?.managedCharity?.id) {
       return `/charities/${user.managedCharity.id}`;
     }
-    // Fallback - you might need to adjust this based on your data structure
-    return '/my-charity';
+    return `/charity/stats/${user.id}`;
+  };
+
+  // Get charity stats path
+  const getCharityStatsPath = () => {
+    if (user?.managedCharity?.id) {
+      return `/charity/stats/${user.managedCharity.id}`;
+    }
+    return `/charity/stats/${user.id}`;
   };
 
   const navigationLinks = [
@@ -117,17 +125,25 @@ const Navbar = () => {
     // Add donation history for donors only
     ...(user.role === 'donor' ? [{ 
       text: 'Donation History', 
-      path: '/my-donations', 
+      path: `/donations/stats/${user.id}`, 
       icon: <History sx={{ fontSize: 28 }} />,
       description: 'View your donation history & blockchain verification'
     }] : []),
-    // Add projects management for charity users only
-    ...(user.role === 'charity' ? [{ 
-      text: 'My Charity', 
-      path: getCharityProjectsPath(), 
-      icon: <Assignment sx={{ fontSize: 28 }} />,
-      description: 'Manage your charity projects and donations'
-    }] : []),
+    // Add projects management and stats for charity users only
+    ...(user.role === 'charity' ? [
+      { 
+        text: 'My Charity', 
+        path: getCharityProjectsPath(), 
+        icon: <Assignment sx={{ fontSize: 28 }} />,
+        description: 'Manage your charity projects and donations'
+      },
+      { 
+        text: 'Charity Stats', 
+        path: getCharityStatsPath(), 
+        icon: <Analytics sx={{ fontSize: 28 }} />,
+        description: 'View analytics and performance metrics'
+      }
+    ] : []),
     ...(user.role !== 'admin' ? [{ 
       text: 'Profile', 
       path: '/profile', 
@@ -288,7 +304,7 @@ const Navbar = () => {
             {user.role === 'donor' && (
               <Button
                 component={Link}
-                to="/my-donations"
+                to={`/donor/stats/${user.id}`}
                 fullWidth
                 variant="outlined"
                 size="large"
@@ -312,32 +328,58 @@ const Navbar = () => {
               </Button>
             )}
 
-            {/* Add my projects button for charity managers in mobile */}
+            {/* Add my projects and stats buttons for charity managers in mobile */}
             {user.role === 'charity' && (
-              <Button
-                component={Link}
-                to={getCharityProjectsPath()}
-                fullWidth
-                variant="outlined"
-                size="large"
-                startIcon={<Assignment sx={{ fontSize: 24 }} />}
-                onClick={toggleMobileDrawer}
-                sx={{
-                  mb: 3,
-                  py: 2,
-                  borderRadius: 2,
-                  fontWeight: 'bold',
-                  fontSize: '1.1rem',
-                  borderColor: theme.palette.primary.main,
-                  color: theme.palette.primary.main,
-                  '&:hover': {
-                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    borderColor: theme.palette.primary.dark
-                  }
-                }}
-              >
-                My Charity
-              </Button>
+              <>
+                <Button
+                  component={Link}
+                  to={getCharityProjectsPath()}
+                  fullWidth
+                  variant="outlined"
+                  size="large"
+                  startIcon={<Assignment sx={{ fontSize: 24 }} />}
+                  onClick={toggleMobileDrawer}
+                  sx={{
+                    mb: 2,
+                    py: 2,
+                    borderRadius: 2,
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    borderColor: theme.palette.primary.main,
+                    color: theme.palette.primary.main,
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      borderColor: theme.palette.primary.dark
+                    }
+                  }}
+                >
+                  My Charity
+                </Button>
+                <Button
+                  component={Link}
+                  to={getCharityStatsPath()}
+                  fullWidth
+                  variant="outlined"
+                  size="large"
+                  startIcon={<Analytics sx={{ fontSize: 24 }} />}
+                  onClick={toggleMobileDrawer}
+                  sx={{
+                    mb: 3,
+                    py: 2,
+                    borderRadius: 2,
+                    fontWeight: 'bold',
+                    fontSize: '1.1rem',
+                    borderColor: theme.palette.info.main,
+                    color: theme.palette.info.main,
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.info.main, 0.08),
+                      borderColor: theme.palette.info.dark
+                    }
+                  }}
+                >
+                  Charity Stats
+                </Button>
+              </>
             )}
 
             <List sx={{ p: 0 }}>
@@ -505,21 +547,29 @@ const Navbar = () => {
               {/* Add Donation History to desktop navigation for donors */}
               {user?.role === 'donor' && (
                 <NavButton
-                  to="/my-donations"
-                  active={isActive('/my-donations')}
+                  to={`/donor/stats/${user.id}`}
+                  active={isActive(`/donor/stats/${user.id}`)}
                 >
                   My Donations
                 </NavButton>
               )}
 
-              {/* Add My Projects to desktop navigation for charity managers */}
+              {/* Add My Projects and Charity Stats to desktop navigation for charity managers */}
               {user?.role === 'charity' && (
-                <NavButton
-                  to={getCharityProjectsPath()}
-                  active={isActive(getCharityProjectsPath())}
-                >
-                  My Charity
-                </NavButton>
+                <>
+                  <NavButton
+                    to={getCharityProjectsPath()}
+                    active={isActive(getCharityProjectsPath())}
+                  >
+                    My Charity
+                  </NavButton>
+                  <NavButton
+                    to={getCharityStatsPath()}
+                    active={isActive(getCharityStatsPath())}
+                  >
+                    Charity Stats
+                  </NavButton>
+                </>
               )}
             </Box>
 
@@ -651,7 +701,7 @@ const Navbar = () => {
                             bgcolor: alpha(theme.palette.primary.main, 0.08)
                           },
                           // Highlight special items for better visibility
-                          ...((item.text === 'Donation History' || item.text === 'My Charity') && {
+                          ...((item.text === 'Donation History' || item.text === 'My Charity' || item.text === 'Charity Stats') && {
                             bgcolor: alpha(theme.palette.primary.main, 0.03),
                             borderLeft: `4px solid ${theme.palette.primary.main}`,
                             ml: 0,
@@ -665,7 +715,7 @@ const Navbar = () => {
                         <Box sx={{ flexGrow: 1 }}>
                           <Typography sx={{ 
                             fontSize: '1.1rem',
-                            fontWeight: (item.text === 'Donation History' || item.text === 'My Charity') ? 'bold' : 'normal'
+                            fontWeight: (item.text === 'Donation History' || item.text === 'My Charity' || item.text === 'Charity Stats') ? 'bold' : 'normal'
                           }}>
                             {item.text}
                           </Typography>

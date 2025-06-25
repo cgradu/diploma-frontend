@@ -1,4 +1,3 @@
-// src/redux/services/authService.js
 import axios from '../../utils/axiosConfig';
 
 // Register user

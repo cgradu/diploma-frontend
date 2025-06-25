@@ -39,7 +39,7 @@ class DonationHistoryService {
         queryParams.append('verified', verified.toString());
       }
 
-      const response = await api.get(`/donations/history?${queryParams}`);
+      const response = await api.get(`/donation/stats/${user.id}?${queryParams}`);
       return response.data;
     } catch (error) {
       throw this.handleApiError(error);

@@ -146,7 +146,7 @@ const DonationDetailPage = () => {
           </Typography>
           <Button
             component={Link}
-            to="/donations/history"
+            to="/donation/stats/${user.id}"
             startIcon={<ArrowBack />}
             variant="outlined"
             sx={{

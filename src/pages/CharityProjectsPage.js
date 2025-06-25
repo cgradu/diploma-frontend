@@ -398,35 +398,6 @@ const handleCreateSuccess = () => {
               gap: 0.5
             }}
           >
-           <Tooltip title="Edit Project">
-            <IconButton
-              onClick={() => handleEditClick(project)} // CHANGED: from Link to onClick
-              size="small"
-              sx={{
-                bgcolor: 'rgba(255, 255, 255, 0.9)',
-                '&:hover': { bgcolor: 'rgba(255, 255, 255, 1)' }
-              }}
-            >
-              <Edit sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-
-            <Tooltip title="Delete Project">
-              <IconButton
-                onClick={() => openDeleteDialog(project.id, project.title)}
-                size="small"
-                sx={{
-                  bgcolor: 'rgba(255, 255, 255, 0.9)',
-                  color: theme.palette.error.main,
-                  '&:hover': { 
-                    bgcolor: 'rgba(255, 255, 255, 1)',
-                    color: theme.palette.error.dark
-                  }
-                }}
-              >
-                <Delete sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
           </Box>
         )}
       </Box>
@@ -594,16 +565,16 @@ const handleCreateSuccess = () => {
             <Button
               onClick={() => handleEditClick(project)} // CHANGED: from Link to onClick
               variant="outlined"
-              size="small"
+              size="medium"
               startIcon={<Edit />}
               sx={{
-                borderRadius: 1,
-                textTransform: 'none',
-                fontWeight: 'medium',
-                fontSize: '0.75rem',
-                px: 1.5,
-                py: 0.5,
-                minWidth: 'auto'
+            borderRadius: 1,
+            textTransform: 'none',
+            fontWeight: 'medium',
+            fontSize: '0.875rem',
+            px: 2.25,
+            py: 0.75,
+            minWidth: 'auto'
               }}
             >
               Edit
@@ -611,17 +582,17 @@ const handleCreateSuccess = () => {
             <Button
               onClick={() => openDeleteDialog(project.id, project.title)}
               variant="outlined"
-              size="small"
+              size="medium"
               color="error"
               startIcon={<Delete />}
               sx={{
-                borderRadius: 1,
-                textTransform: 'none',
-                fontWeight: 'medium',
-                fontSize: '0.75rem',
-                px: 1.5,
-                py: 0.5,
-                minWidth: 'auto'
+            borderRadius: 1,
+            textTransform: 'none',
+            fontWeight: 'medium',
+            fontSize: '0.875rem',
+            px: 2.25,
+            py: 0.75,
+            minWidth: 'auto'
               }}
             >
               Delete

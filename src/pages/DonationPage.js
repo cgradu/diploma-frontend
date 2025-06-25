@@ -262,6 +262,7 @@ const DonationPage = () => {
     return (
       <Box sx={{ 
         minHeight: '100vh',
+        maxHeight: '100vh',
         background: `linear-gradient(135deg, ${theme.palette.primary.light}10 0%, ${theme.palette.secondary.light}10 100%)`,
       }}>
         <Navbar />

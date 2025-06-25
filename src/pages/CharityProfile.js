@@ -672,63 +672,6 @@ const CharityProfilePage = () => {
                 Contact Charity
               </Button>
             </Paper>
-
-            {/* Blockchain Verification */}
-            <Paper elevation={0} sx={{ p: 3, mb: 4, border: `1px solid ${theme.palette.divider}`, borderRadius: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 3 }}>
-                Blockchain Verification
-              </Typography>
-              
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Avatar
-                  sx={{
-                    width: 64,
-                    height: 64,
-                    bgcolor: alpha(theme.palette.success.main, 0.1),
-                    color: theme.palette.success.main,
-                    mx: 'auto',
-                    mb: 2
-                  }}
-                >
-                  <Security sx={{ fontSize: 32 }} />
-                </Avatar>
-                
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  This charity is verified on the blockchain, ensuring complete transparency for all donations.
-                </Typography>
-                
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 2,
-                    bgcolor: alpha(theme.palette.primary.main, 0.05),
-                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-                    borderRadius: 1,
-                    mb: 2
-                  }}
-                >
-                  <Typography variant="caption" sx={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                    {charity.registrationId}
-                  </Typography>
-                </Paper>
-                
-                <Button
-                  component={Link}
-                  to={`/blockchain/verify?charityId=${charityId}`}
-                  variant="contained"
-                  size="small"
-                  startIcon={<Verified />}
-                  sx={{
-                    borderRadius: 2,
-                    textTransform: 'none',
-                    bgcolor: theme.palette.success.main,
-                    '&:hover': { bgcolor: theme.palette.success.dark }
-                  }}
-                >
-                  Verify on Blockchain
-                </Button>
-              </Box>
-            </Paper>
           </Grid>
         </Grid>
       </Container>
