@@ -1,5 +1,6 @@
 // src/components/donation/DonationSuccess.js
-import React, { useState, useSelector } from 'react';
+import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   Box,
@@ -25,8 +26,6 @@ import {
   CheckCircle as CheckCircleIcon,
   Favorite as FavoriteIcon,
   Receipt as ReceiptIcon,
-  Share as ShareIcon,
-  Timeline as TimelineIcon,
   Security as SecurityIcon,
   Business as BusinessIcon,
   ExpandMore as ExpandMoreIcon,
@@ -62,17 +61,6 @@ const DonationSuccess = ({ donation }) => {
       minute: '2-digit'
     });
   };
-
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'I just made a donation!',
-        text: `I donated ${formatCurrency(donation?.amount, donation?.currency)} to help make a difference!`,
-        url: window.location.href
-      });
-    }
-  };
-
   if (!donation) {
     return (
       <Box textAlign="center" py={8}>
