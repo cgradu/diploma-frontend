@@ -462,7 +462,7 @@ const DonationSuccess = ({ donation }) => {
                       variant="outlined"
                       startIcon={<HistoryIcon />}
                       component={Link}
-                      to={`/donation/stats/${user.id}`}
+                      to={`/donor/stats/${user.id}`}
                       sx={{ py: 1.5 }}
                     >
                       Donation History
